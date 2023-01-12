@@ -9,22 +9,116 @@ const app = express();
 app.use(cors()); //middleware
 app.use(express.json());
 
-const uri = `mongodb+srv://${process.env.REACT_APP_USERNAME}:${process.env.REACT_APP_PASSWORD}@cluster0.ce7h0.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.REACT_APP_USERNAME}:${process.env.REACT_APP_PASSWORD}@cluster0.ce7h0.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 async function run() {
     try {
         await client.connect();
         const database = client.db("E24Games");
-        const quesCollection = database.collection("questions");
+        const tournamentCollection = database.collection("tournaments");
+        const leaderboardsCollection = database.collection("leaderboards");
+        const tournamentChatroomCollection = database.collection("tournamentChatroom");
+
+        //Get Api for all tournaments
+        app.get('/api/tournament/tournaments', async (req, res) => {
+            let response = {
+                success: true,
+                status: 200,
+                signed_in: false,
+                version: 1,
+                data: [],
+                error: null
+            }
+
+            try {
+                const cursor = tournamentCollection.find({});
+                const tournaments = await cursor.toArray();
+
+                if (tournaments.length > 0) {
+                    response.data = tournaments;
+                }
+            } catch (err) {
+                console.log(err);
+                response.success = false;
+                response.status = 500;
+                response.error = {
+                    code: 500,
+                    message: "An Internal Error Has Occurred!",
+                    target: "approx what the error came from"
+                }
+            }
+            res.send(response);
+        })
+
+        //Get Api for leaderboards
+        app.get('/api/tournament/leaderboards', async (req, res) => {
+            let response = {
+                success: true,
+                status: 200,
+                signed_in: false,
+                version: 1,
+                data: [],
+                error: null
+            }
+            try {
+                const cursor = leaderboardsCollection.find({});
+                const leaderboards = await cursor.toArray();
+
+                if (leaderboards.length > 0) {
+                    response.data = leaderboards;
+                }
+            } catch (err) {
+                console.log(err);
+                response.success = false;
+                response.status = 500;
+                response.error = {
+                    code: 500,
+                    message: "An Internal Error Has Occurred!",
+                    target: "approx what the error came from"
+                }
+            }
+            res.send(response);
+        })
+
+        //Get Api for chatroom under tournament
+        app.get('/api/tournament/chatroom', async (req, res) => {
+            let response = {
+                success: true,
+                status: 200,
+                signed_in: false,
+                version: 1,
+                data: [],
+                error: null
+            }
+            try {
+                const cursor = tournamentChatroomCollection.find({});
+                const tournamentChatroom = await cursor.toArray();
+
+                if (tournamentChatroom.length > 0) {
+                    response.data = tournamentChatroom;
+                }
+            } catch (err) {
+                console.log(err);
+                response.success = false;
+                response.status = 500;
+                response.error = {
+                    code: 500,
+                    message: "An Internal Error Has Occurred!",
+                    target: "approx what the error came from"
+                }
+            }
+            res.send(response);
+        })
+
 
         //Get Api for offers
-        app.post('/api/Quiz/StartQuiz', async (req, res) => {
-            //     const token = req.body; //console.log(req.body);
-            const cursor = quesCollection.find({});
-            const offers = await cursor.toArray();
-            res.send(offers);
-        })
+        // app.post('/api/Quiz/StartQuiz', async (req, res) => {
+        //     //     const token = req.body; //console.log(req.body);
+        //     const cursor = quesCollection.find({});
+        //     const offers = await cursor.toArray();
+        //     res.send(offers);
+        // })
 
         //Post Api for orders
         // app.post('/add-order', async(req, res) => {
