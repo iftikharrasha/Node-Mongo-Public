@@ -6,19 +6,34 @@ const jwt = require('jsonwebtoken');
 const uuid = require('uuid');
 const _ = require('lodash');
 const ObjectId = require('mongodb').ObjectId;
+const moment = require('moment');
+
+// const Message = require("./src/models/message-model.jsx");
+
 const port = process.env.PORT || 5000;
 
+const http = require('http');
+const { Server } = require('socket.io');
+
 const app = express();
-app.use(cors()); //middleware
+app.use(cors());
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.REACT_APP_USERNAME}:${process.env.REACT_APP_PASSWORD}@cluster0.ce7h0.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
+
 async function run() {
     try {
         await client.connect();
+
         const database = client.db("E24Games");
+        const CHAT_BOT = 'ChatBot';
+        const CHAT_BOT_IMAGE = 'https://img.freepik.com/free-vector/cute-cat-gaming-cartoon_138676-2969.jpg';
+        
+        let chatRoomId = "";
+        let timeout = 120000;
+
         const tournaments = database.collection("tournaments");
         const leaderboards = database.collection("leaderboards");
         const tournamentChatroom = database.collection("tournamentChatroom");
@@ -27,6 +42,87 @@ async function run() {
         const staticLanding = database.collection("staticLanding");
         const giftcards = database.collection("giftcards");
         const versionTable = database.collection("versionTable");
+        const chatRoom = database.collection("chatRoom");
+
+        // Create an io server and allow for CORS from ORIGIN with GET and POST methods
+        const server = http.createServer(app);
+        server.setTimeout(timeout); //timeout set to 2 minutes to keep connected due to user inactivity
+
+        const io = new Server(server, {
+            cors: {
+                origin: `${process.env.REACT_APP_CLIENT_ORIGIN}`,
+                methods: ['GET', 'POST'],
+            },
+            allowEIO3: true
+        });
+
+        // Listen for when the client connects via socket.io-client
+        io.on('connection', (socket) => {
+            //   console.log(`User connected to socketID: ${socket.id}`);
+
+            // Add a user to a room
+            socket.on('join_room', async (data) => {
+                const { room, senderName } = data; // Data sent from client when join_room event emitted
+                chatRoomId = room;
+
+                socket.join(chatRoomId); // Join the user to a socket room
+
+                const now = Date.now(); // Current timestamp
+                const date = moment(now);
+                const timeStamp = date.format('YYYY-MM-DDTHH:mm:ss.SSS');
+                
+                // Send message to all users currently in the room, apart from the user that just joined
+                socket.broadcast.to(chatRoomId).emit('receive_message', {
+                    message: `${senderName} has joined the room`,
+                    senderName: CHAT_BOT,
+                    senderPhoto: CHAT_BOT_IMAGE,
+                    timeStamp
+                });
+
+                // Send welcome msg to user that just joined chat only
+                socket.emit('receive_message', {
+                    message: `Welcome ${senderName}`,
+                    senderName: CHAT_BOT,
+                    senderPhoto: CHAT_BOT_IMAGE,
+                    timeStamp,
+                });
+
+                const query = { roomId: chatRoomId };
+                const cursor = chatRoom.find(query);
+                const last100Messages = await cursor.limit(100).toArray();
+
+                if (last100Messages) {
+                    socket.emit("last_100_messages", last100Messages);
+                }
+            });
+
+            socket.on('ping', () => {
+                const timestamp = new Date().getTime();
+                const formattedDate = moment(timestamp).format('HH:mm:ss');
+                console.log(`Received ping from socket ${socket.id} at ${formattedDate}`);
+                socket.emit('pong', timestamp, formattedDate);
+
+                // Reset the server timeout to 120000ms (2 minutes)
+                server.setTimeout(timeout);
+            });
+
+            socket.on("send_message", async (data) => {
+                const { message, senderName, roomId, timeStamp } = data;
+                io.in(roomId).emit("receive_message", data); // Send to all users in room, including sender
+
+                // Save message to database
+                const result = await chatRoom.insertOne(data);
+            });
+
+            socket.on("disconnect", () => {
+                socket.to(chatRoomId).emit("receive_message", {
+                  message: `user has left the room.`,
+                  senderName: CHAT_BOT,
+                  senderPhoto: CHAT_BOT_IMAGE,
+                  timeStamp: Date.now()
+                });
+            });
+        });
 
         const handleListApiResponse = async  (req, res, collection, tableTitle) => {
             let response = {
@@ -324,7 +420,6 @@ async function run() {
             if (req.headers.authorization) {
                 if (req.headers.authorization.startsWith('Bearer ')) {
                     const token = req.headers.authorization.split(' ')[1];
-                    console.log(token)
                 } else {
                     console.log('Should start with Bearer')
                 }
@@ -745,6 +840,8 @@ async function run() {
             }
         });
 
+        server.listen(port, () => console.log('Server is loading at port@5000'));
+
 
         //Get Api for offers
         // app.post('/api/Quiz/StartQuiz', async (req, res) => {
@@ -783,5 +880,3 @@ run().catch(console.dir);
 app.get('/', (req, res) => {
     res.send('Server is loading!');
 })
-
-app.listen(port, () => console.log('Server is loading at port@5000'));
