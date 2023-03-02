@@ -33,6 +33,7 @@ async function run() {
         
         let chatRoomId = "";
         let timeout = 120000;
+        let allUsers = [];
 
         const tournaments = database.collection("tournaments");
         const leaderboards = database.collection("leaderboards");
@@ -62,8 +63,8 @@ async function run() {
 
             // Add a user to a room
             socket.on('join_room', async (data) => {
-                const { room, senderName } = data; // Data sent from client when join_room event emitted
-                chatRoomId = room;
+                const { roomId, senderName, senderPhoto } = data; // Data sent from client when join_room event emitted
+                chatRoomId = roomId;
 
                 socket.join(chatRoomId); // Join the user to a socket room
 
@@ -76,7 +77,8 @@ async function run() {
                     message: `${senderName} has joined the room`,
                     senderName: CHAT_BOT,
                     senderPhoto: CHAT_BOT_IMAGE,
-                    timeStamp
+                    timeStamp,
+                    sound: "bot"
                 });
 
                 // Send welcome msg to user that just joined chat only
@@ -85,8 +87,19 @@ async function run() {
                     senderName: CHAT_BOT,
                     senderPhoto: CHAT_BOT_IMAGE,
                     timeStamp,
+                    sound: "bot"
                 });
 
+                //allusers are users of all rooms
+                allUsers.push({ id: socket.id, roomId: chatRoomId, name: senderName, senderPhoto: senderPhoto, timeStamp: timeStamp });
+
+                //only send the users of this room, since a lot of users will be joining to other rooms as well
+                let chatRoomUsers = allUsers.filter((user) => user.roomId === chatRoomId);
+
+                socket.to(chatRoomId).emit("chatroom_users", chatRoomUsers);
+                socket.emit("chatroom_users", chatRoomUsers);
+
+                //send all messages from DB
                 const query = { roomId: chatRoomId };
                 const cursor = chatRoom.find(query);
                 const last100Messages = await cursor.limit(100).toArray();
@@ -94,6 +107,16 @@ async function run() {
                 if (last100Messages) {
                     socket.emit("last_100_messages", last100Messages);
                 }
+            });
+
+            socket.on("send_message", async (data) => {
+                const { message, senderName, roomId, timeStamp, senderPhoto } = data;
+
+                // Send to all users in room, including sender
+                io.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, timeStamp, sound: "msg" }); 
+
+                // Save message to database
+                const result = await chatRoom.insertOne(data);
             });
 
             socket.on('ping', () => {
@@ -105,22 +128,28 @@ async function run() {
                 // Reset the server timeout to 120000ms (2 minutes)
                 server.setTimeout(timeout);
             });
-
-            socket.on("send_message", async (data) => {
-                const { message, senderName, roomId, timeStamp } = data;
-                io.in(roomId).emit("receive_message", data); // Send to all users in room, including sender
-
-                // Save message to database
-                const result = await chatRoom.insertOne(data);
+            
+            socket.on("typing", ({ roomId, userName }) => {
+                // socket.to(roomId).emit("typing", { user: socket.id, roomId: roomId })
+                console.log(`${userName} is typing...`);
+                socket.to(roomId).emit("userTyping", userName);
             });
 
             socket.on("disconnect", () => {
-                socket.to(chatRoomId).emit("receive_message", {
-                  message: `user has left the room.`,
-                  senderName: CHAT_BOT,
-                  senderPhoto: CHAT_BOT_IMAGE,
-                  timeStamp: Date.now()
-                });
+                const user = allUsers.find((user) => user.id == socket.id);
+
+                if (user?.name) {
+                    allUsers = allUsers.filter((user) => user.id !== socket.id);
+                    socket.to(chatRoomId).emit("chatroom_users", allUsers);
+
+                    socket.to(chatRoomId).emit("receive_message", {
+                      message: `${user.name} has left the room.`,
+                      senderName: CHAT_BOT,
+                      senderPhoto: CHAT_BOT_IMAGE,
+                      timeStamp: Date.now(),
+                      sound: "bot"
+                    });
+                }
             });
         });
 
