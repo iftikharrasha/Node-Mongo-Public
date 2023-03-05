@@ -102,7 +102,7 @@ async function run() {
                 //send all messages from DB
                 const query = { roomId: chatRoomId };
                 const cursor = chatRoom.find(query);
-                const last100Messages = await cursor.limit(100).toArray();
+                const last100Messages = await cursor.limit(25).toArray();
 
                 if (last100Messages) {
                     socket.emit("last_100_messages", last100Messages);
@@ -123,7 +123,7 @@ async function run() {
                 const timestamp = new Date().getTime();
                 const formattedDate = moment(timestamp).format('HH:mm:ss');
                 console.log(`Received ping from socket ${socket.id} at ${formattedDate}`);
-                socket.emit('pong', timestamp, formattedDate);
+                socket.emit('pong', timestamp, formattedDate, socket.id);
 
                 // Reset the server timeout to 120000ms (2 minutes)
                 server.setTimeout(timeout);
@@ -134,6 +134,27 @@ async function run() {
                 console.log(`${userName} is typing...`);
                 socket.to(roomId).emit("userTyping", userName);
             });
+
+            socket.on("leave_room", (data) => {
+                const { timeStamp } = data;
+                const user = allUsers.find((user) => user.id == socket.id);
+                
+                socket.leave(chatRoomId);
+
+                // Remove user from memory
+                if (user?.name) {
+                    allUsers = allUsers.filter((user) => user.id !== socket.id);
+                    socket.to(chatRoomId).emit("chatroom_users", allUsers);
+
+                    socket.to(chatRoomId).emit("receive_message", {
+                      message: `${user.name} has left the room.`,
+                      senderName: CHAT_BOT,
+                      senderPhoto: CHAT_BOT_IMAGE,
+                      timeStamp: timeStamp,
+                      sound: "bot"
+                    });
+                }
+              });
 
             socket.on("disconnect", () => {
                 const user = allUsers.find((user) => user.id == socket.id);
