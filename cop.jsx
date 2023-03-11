@@ -34,7 +34,6 @@ async function run() {
         let chatRoomId = "";
         let timeout = 120000;
         let allUsers = [];
-        let allUsersByRoom = {}; //1
 
         const tournaments = database.collection("tournaments");
         const leaderboards = database.collection("leaderboards");
@@ -91,17 +90,14 @@ async function run() {
                     sound: "bot"
                 });
 
-                //2
-                if (!allUsersByRoom[chatRoomId]) {
-                    allUsersByRoom[chatRoomId] = [];
-                }
-
                 //allusers are users of all rooms
-                allUsersByRoom[chatRoomId].push({ id: socket.id, roomId: chatRoomId, name: senderName, senderPhoto: senderPhoto, timeStamp: timeStamp });
+                allUsers.push({ id: socket.id, roomId: chatRoomId, name: senderName, senderPhoto: senderPhoto, timeStamp: timeStamp });
 
                 //only send the users of this room, since a lot of users will be joining to other rooms as well
-                socket.to(chatRoomId).emit("chatroom_users", allUsersByRoom[chatRoomId]);
-                socket.emit("chatroom_users", allUsersByRoom[chatRoomId]);
+                let chatRoomUsers = allUsers.filter((user) => user.roomId === chatRoomId);
+
+                socket.to(chatRoomId).emit("chatroom_users", chatRoomUsers);
+                socket.emit("chatroom_users", chatRoomUsers);
 
                 //send all messages from DB
                 const query = { roomId: chatRoomId };
@@ -141,66 +137,38 @@ async function run() {
 
             socket.on("leave_room", (data) => {
                 const { timeStamp } = data;
-                let removedUser;
-                const updatedUsersByRoom = Object.fromEntries(
-                    Object.entries(allUsersByRoom).map(([room, users]) => [
-                      room,
-                      users.filter(user => {
-                        if(user.id === socket.id){
-                            removedUser = user;
-                            return false;
-                        }else{
-                            return true;
-                        }
-                      })
-                    ])
-                );
-
-                // If the user is found
-                if(removedUser?.name) {
-                    const userRoomId = removedUser.roomId;
-                    allUsersByRoom = updatedUsersByRoom;  // array updated of list of remaining users
-                    socket.to(userRoomId).emit("chatroom_users", updatedUsersByRoom[userRoomId]);
-
-                    socket.broadcast.to(userRoomId).emit("receive_message", {
-                        message: `${removedUser?.name} has left the room.`,
-                        senderName: CHAT_BOT,
-                        senderPhoto: CHAT_BOT_IMAGE,
-                        timeStamp: timeStamp,
-                        sound: "bot",
-                    });
-                }
+                const user = allUsers.find((user) => user.id == socket.id);
                 
                 socket.leave(chatRoomId);
-            });
+
+                // Remove user from memory
+                if (user?.name) {
+                    allUsers = allUsers.filter((user) => user.id !== socket.id);
+                    socket.to(chatRoomId).emit("chatroom_users", allUsers);
+
+                    socket.broadcast.to(chatRoomId).emit("receive_message", {
+                      message: `${user.name} has left the room.`,
+                      senderName: CHAT_BOT,
+                      senderPhoto: CHAT_BOT_IMAGE,
+                      timeStamp: timeStamp,
+                      sound: "bot"
+                    });
+                }
+              });
 
             socket.on("disconnect", () => {
-                let removedUser;
-                const updatedUsersByRoom = Object.fromEntries(
-                    Object.entries(allUsersByRoom).map(([room, users]) => [
-                      room,
-                      users.filter(user => {
-                        if(user.id === socket.id){
-                            removedUser = user;
-                            return false;
-                        }else{
-                            return true;
-                        }
-                      })
-                    ])
-                  );
+                const user = allUsers.find((user) => user.id == socket.id);
 
-                if(removedUser?.name) {
-                    const userRoomId = removedUser.roomId;
-                    allUsersByRoom = updatedUsersByRoom;  // array updated of list of remaining users
-                    socket.to(userRoomId).emit("chatroom_users", updatedUsersByRoom[userRoomId]);
+                if (user?.name) {
+                    allUsers = allUsers.filter((user) => user.id !== socket.id);
+                    socket.to(chatRoomId).emit("chatroom_users", allUsers);
 
-                    socket.broadcast.to(userRoomId).emit("receive_message", {
-                        message: `${removedUser?.name} has left the room.`,
-                        senderName: CHAT_BOT,
-                        senderPhoto: CHAT_BOT_IMAGE,
-                        timeStamp: Date.now(),
-                        sound: "bot",
+                    socket.broadcast.to(chatRoomId).emit("receive_message", {
+                      message: `${user.name} has left the room.`,
+                      senderName: CHAT_BOT,
+                      senderPhoto: CHAT_BOT_IMAGE,
+                      timeStamp: Date.now(),
+                      sound: "bot"
                     });
                 }
             });

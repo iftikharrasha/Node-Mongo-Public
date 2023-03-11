@@ -34,7 +34,7 @@ async function run() {
         let chatRoomId = "";
         let timeout = 120000;
         let allUsers = [];
-        let allUsersByRoom = {}; //1
+        const allUsersByRoom = {}; //1
 
         const tournaments = database.collection("tournaments");
         const leaderboards = database.collection("leaderboards");
@@ -96,12 +96,19 @@ async function run() {
                     allUsersByRoom[chatRoomId] = [];
                 }
 
-                //allusers are users of all rooms
+                // Add the user to the array for the room
                 allUsersByRoom[chatRoomId].push({ id: socket.id, roomId: chatRoomId, name: senderName, senderPhoto: senderPhoto, timeStamp: timeStamp });
-
-                //only send the users of this room, since a lot of users will be joining to other rooms as well
                 socket.to(chatRoomId).emit("chatroom_users", allUsersByRoom[chatRoomId]);
                 socket.emit("chatroom_users", allUsersByRoom[chatRoomId]);
+
+                //allusers are users of all rooms
+                // allUsers.push({ id: socket.id, roomId: chatRoomId, name: senderName, senderPhoto: senderPhoto, timeStamp: timeStamp });
+
+                //only send the users of this room, since a lot of users will be joining to other rooms as well
+                // let chatRoomUsers = allUsers.filter((user) => user.roomId === chatRoomId);
+
+                // socket.to(chatRoomId).emit("chatroom_users", chatRoomUsers);
+                // socket.emit("chatroom_users", chatRoomUsers);
 
                 //send all messages from DB
                 const query = { roomId: chatRoomId };
@@ -141,29 +148,48 @@ async function run() {
 
             socket.on("leave_room", (data) => {
                 const { timeStamp } = data;
-                let removedUser;
-                const updatedUsersByRoom = Object.fromEntries(
-                    Object.entries(allUsersByRoom).map(([room, users]) => [
-                      room,
-                      users.filter(user => {
-                        if(user.id === socket.id){
-                            removedUser = user;
-                            return false;
-                        }else{
-                            return true;
-                        }
-                      })
-                    ])
-                );
+                // const user = allUsers.find((user) => user.id == socket.id);
+
+                // Remove user from memory
+                // if (user?.name) {
+                //     allUsers = allUsers.filter((user) => user.id !== socket.id);
+                //     socket.to(chatRoomId).emit("chatroom_users", allUsers);
+
+                //     socket.broadcast.to(chatRoomId).emit("receive_message", {
+                //       message: `${user.name} has left the room.`,
+                //       senderName: CHAT_BOT,
+                //       senderPhoto: CHAT_BOT_IMAGE,
+                //       timeStamp: timeStamp,
+                //       sound: "bot"
+                //     });
+                // }
+
+                const roomIds = Object.keys(allUsersByRoom);
+                let userRoomId = null;
+                let userIndex = null;
+                for (let i = 0; i < roomIds.length; i++) {
+                    const roomId = roomIds[i];
+                    const roomUsers = allUsersByRoom[roomId];
+                    const index = roomUsers.findIndex((user) => user.id === socket.id);
+                    if (index !== -1) {
+                        userRoomId = roomId;
+                        userIndex = index;
+                        break;
+                    }
+                }
 
                 // If the user is found
-                if(removedUser?.name) {
-                    const userRoomId = removedUser.roomId;
-                    allUsersByRoom = updatedUsersByRoom;  // array updated of list of remaining users
-                    socket.to(userRoomId).emit("chatroom_users", updatedUsersByRoom[userRoomId]);
+                if (userRoomId !== null && userIndex !== null) {
+                    // Remove the user from the array for the room
+                    allUsersByRoom[userRoomId].splice(userIndex, 1);
 
+                    // Emit the updated user list to all clients in the room
+                    socket.to(userRoomId).emit("chatroom_users", allUsersByRoom[userRoomId]);
+
+                    // Emit the 'user left' message to all clients in the room
+                    const user = allUsersByRoom[userRoomId][userIndex];
                     socket.broadcast.to(userRoomId).emit("receive_message", {
-                        message: `${removedUser?.name} has left the room.`,
+                        message: `${user?.name} has left the room.`,
                         senderName: CHAT_BOT,
                         senderPhoto: CHAT_BOT_IMAGE,
                         timeStamp: timeStamp,
@@ -172,31 +198,49 @@ async function run() {
                 }
                 
                 socket.leave(chatRoomId);
-            });
+              });
 
             socket.on("disconnect", () => {
-                let removedUser;
-                const updatedUsersByRoom = Object.fromEntries(
-                    Object.entries(allUsersByRoom).map(([room, users]) => [
-                      room,
-                      users.filter(user => {
-                        if(user.id === socket.id){
-                            removedUser = user;
-                            return false;
-                        }else{
-                            return true;
-                        }
-                      })
-                    ])
-                  );
+                // const user = allUsers.find((user) => user.id == socket.id);
 
-                if(removedUser?.name) {
-                    const userRoomId = removedUser.roomId;
-                    allUsersByRoom = updatedUsersByRoom;  // array updated of list of remaining users
-                    socket.to(userRoomId).emit("chatroom_users", updatedUsersByRoom[userRoomId]);
+                // if (user?.name) {
+                //     allUsers = allUsers.filter((user) => user.id !== socket.id);
+                //     socket.to(chatRoomId).emit("chatroom_users", allUsers);
 
+                //     socket.broadcast.to(chatRoomId).emit("receive_message", {
+                //       message: `${user.name} has left the room.`,
+                //       senderName: CHAT_BOT,
+                //       senderPhoto: CHAT_BOT_IMAGE,
+                //       timeStamp: Date.now(),
+                //       sound: "bot"
+                //     });
+                // }
+                const roomIds = Object.keys(allUsersByRoom);
+                let userRoomId = null;
+                let userIndex = null;
+                for (let i = 0; i < roomIds.length; i++) {
+                    const roomId = roomIds[i];
+                    const roomUsers = allUsersByRoom[roomId];
+                    const index = roomUsers.findIndex((user) => user.id === socket.id);
+                    if (index !== -1) {
+                        userRoomId = roomId;
+                        userIndex = index;
+                        break;
+                    }
+                }
+
+                // If the user is found
+                if (userRoomId !== null && userIndex !== null) {
+                    // Remove the user from the array for the room
+                    allUsersByRoom[userRoomId].splice(userIndex, 1);
+
+                    // Emit the updated user list to all clients in the room
+                    socket.to(userRoomId).emit("chatroom_users", allUsersByRoom[userRoomId]);
+
+                    // Emit the 'user left' message to all clients in the room
+                    const user = allUsersByRoom[userRoomId][userIndex];
                     socket.broadcast.to(userRoomId).emit("receive_message", {
-                        message: `${removedUser?.name} has left the room.`,
+                        message: `${user?.name} has left the room.`,
                         senderName: CHAT_BOT,
                         senderPhoto: CHAT_BOT_IMAGE,
                         timeStamp: Date.now(),
