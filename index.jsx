@@ -33,7 +33,6 @@ async function run() {
         
         let chatRoomId = "";
         let timeout = 120000;
-        let allUsers = [];
         let allUsersByRoom = {}; //1
 
         const tournaments = database.collection("tournaments");
