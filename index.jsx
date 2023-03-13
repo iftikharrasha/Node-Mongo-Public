@@ -33,7 +33,7 @@ async function run() {
         
         let chatRoomId = "";
         let timeout = 120000;
-        let allUsersByRoom = {}; //1
+        let allUsersByRoom = {};
 
         const tournaments = database.collection("tournaments");
         const leaderboards = database.collection("leaderboards");
@@ -44,6 +44,7 @@ async function run() {
         const giftcards = database.collection("giftcards");
         const versionTable = database.collection("versionTable");
         const chatRoom = database.collection("chatRoom");
+        const notifications = database.collection("notifications");
 
         // Create an io server and allow for CORS from ORIGIN with GET and POST methods
         const server = http.createServer(app);
@@ -57,8 +58,53 @@ async function run() {
             allowEIO3: true
         });
 
+        const chatNamespace = io.of("/chatRoom");
+        const notificationNamespace = io.of("/notifications");
+
+        notificationNamespace.on("connection", (socket) => {
+            const { userId } = socket.handshake.query;
+
+            socket.on('join_notifications', async (data) => {
+                console.log(`User connected to notyf socketID: ${socket.id}`);
+                const { userId } = data; // Data sent from client when join_room event emitted
+                // Join the user to the notification socket using their unique ID
+                socket.join(userId);
+
+                // socket.emit('receive_notification', {
+                //     message: `Welcome ${userId}`,
+                //     senderName: CHAT_BOT,
+                //     senderPhoto: CHAT_BOT_IMAGE,
+                //     timeStamp: Date.now(),
+                //     sound: "notyf"
+                // });
+
+                //send all messages from DB
+                const query = { receivedById: userId };
+                const cursor = notifications.find(query);
+                const last10Notifications =  await cursor.sort({ _id: -1 }).limit(10).toArray();
+    
+                if (last10Notifications) {
+                    socket.emit("last_10_notifications", last10Notifications);
+                }
+            })
+          
+            // Listen for incoming notifications
+            // socket.on("new_notification", (data) => {
+            //   // Broadcast the notification to all sockets in the user's notification room
+            //   notificationNamespace.to(userId).emit("notification", data);
+            // });
+
+            socket.on("disconnect", () => {
+                console.log("Disconnected from notification socket");
+            });
+
+            // notificationNamespace.to("user_12345_notifications").emit("notification", {
+            //     message: "New notification!",
+            // });
+        });
+
         // Listen for when the client connects via socket.io-client
-        io.on('connection', (socket) => {
+        chatNamespace.on('connection', (socket) => {
             //   console.log(`User connected to socketID: ${socket.id}`);
 
             // Add a user to a room
@@ -116,7 +162,7 @@ async function run() {
                 const { message, senderName, roomId, timeStamp, senderPhoto } = data;
 
                 // Send to all users in room, including sender
-                io.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, timeStamp, sound: "msg" }); 
+                chatNamespace.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, timeStamp, sound: "msg" }); 
 
                 // Save message to database
                 const result = await chatRoom.insertOne(data);
