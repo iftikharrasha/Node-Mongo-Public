@@ -62,7 +62,7 @@ async function run() {
         const notificationNamespace = io.of("/notifications");
 
         notificationNamespace.on("connection", (socket) => {
-            const { userId } = socket.handshake.query;
+            const { userId, userName } = socket.handshake.query;
 
             socket.on('join_notifications', async (data) => {
                 console.log(`User connected to notyf socketID: ${socket.id}`);
@@ -70,13 +70,22 @@ async function run() {
                 // Join the user to the notification socket using their unique ID
                 socket.join(userId);
 
-                // socket.emit('receive_notification', {
-                //     message: `Welcome ${userId}`,
-                //     senderName: CHAT_BOT,
-                //     senderPhoto: CHAT_BOT_IMAGE,
-                //     timeStamp: Date.now(),
-                //     sound: "notyf"
-                // });
+                const now = Date.now(); // Current timestamp
+                const date = moment(now);
+                const timeStamp = date.format('YYYY-MM-DDTHH:mm:ss.SSS');
+
+                socket.emit('receive_notification', {
+                    type: "registration_account",
+                    subject: `Welcome user to your notyf ${userName}`,
+                    subjectPhoto: "http/support",
+                    invokedByName: "E24Support",
+                    invokedById: "640e1f2f5241adf08384a264",
+                    receivedByName: userName,
+                    receivedById: userId,
+                    route: "/",
+                    timeStamp,
+                    read: false
+                });
 
                 //send all messages from DB
                 const query = { receivedById: userId };
@@ -87,20 +96,18 @@ async function run() {
                     socket.emit("last_10_notifications", last10Notifications);
                 }
             })
-          
-            // Listen for incoming notifications
-            // socket.on("new_notification", (data) => {
-            //   // Broadcast the notification to all sockets in the user's notification room
-            //   notificationNamespace.to(userId).emit("notification", data);
-            // });
+
+            socket.on("send_notification", async (data) => {
+                // Send to the specified user only
+                notificationNamespace.to(userId).emit("receive_notification", data); 
+
+                // Save notification to database
+                // const result = await notifications.insertOne(data);
+            });
 
             socket.on("disconnect", () => {
                 console.log("Disconnected from notification socket");
             });
-
-            // notificationNamespace.to("user_12345_notifications").emit("notification", {
-            //     message: "New notification!",
-            // });
         });
 
         // Listen for when the client connects via socket.io-client
@@ -849,6 +856,7 @@ async function run() {
                         response.data = {
                             jwt: token,
                             refreshToken: refreshToken,
+                            user: user
                         };
                         res.send(response);
                     }
