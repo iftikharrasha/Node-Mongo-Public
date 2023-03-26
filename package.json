@@ -5,7 +5,9 @@
   "main": "index.jsx",
   "scripts": {
     "start": "node index.jsx",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon index",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "echo 'Nothing to build'"
   },
   "repository": {
     "type": "git",
