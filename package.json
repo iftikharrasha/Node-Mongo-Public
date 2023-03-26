@@ -2,8 +2,10 @@
   "name": "node-mongo-public",
   "version": "1.0.0",
   "description": "",
+  "main": "index.jsx",
   "scripts": {
-    "start": "node index"
+    "start": "nodemon index",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
