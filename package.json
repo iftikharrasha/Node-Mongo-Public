@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "build": "echo 'Nothing to build'",
     "start": "node index"
   },
   "repository": {
