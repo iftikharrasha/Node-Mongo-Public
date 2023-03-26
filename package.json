@@ -2,9 +2,6 @@
   "name": "node-mongo-public",
   "version": "1.0.0",
   "description": "",
-  "engines": {
-    "node": "14.x"
-  },
   "scripts": {
     "build": "echo 'Nothing to build'",
     "start": "node index"
