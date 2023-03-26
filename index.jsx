@@ -99,6 +99,7 @@ async function run() {
 
             socket.on("send_notification", async (data) => {
                 const { type, receivedById } = data; 
+                console.log(data)
 
                 // Send to the specified user only
                 notificationNamespace.to(receivedById).emit("receive_notification", data); 
@@ -118,7 +119,7 @@ async function run() {
 
             // Add a user to a room
             socket.on('join_room', async (data) => {
-                const { roomId, senderName, senderPhoto } = data; // Data sent from client when join_room event emitted
+                const { userId, roomId, senderName, senderPhoto, stats } = data; // Data sent from client when join_room event emitted
                 chatRoomId = roomId;
 
                 socket.join(chatRoomId); // Join the user to a socket room
@@ -151,7 +152,7 @@ async function run() {
                 }
 
                 //allusers are users of all rooms
-                allUsersByRoom[chatRoomId].push({ id: socket.id, roomId: chatRoomId, userName: senderName, photo: senderPhoto, timeStamp: timeStamp });
+                allUsersByRoom[chatRoomId].push({ id: userId, socketId: socket.id, roomId: chatRoomId, userName: senderName, photo: senderPhoto, timeStamp: timeStamp, stats: stats });
 
                 //only send the users of this room, since a lot of users will be joining to other rooms as well
                 socket.to(chatRoomId).emit("chatroom_users", allUsersByRoom[chatRoomId]);
@@ -200,7 +201,7 @@ async function run() {
                     Object.entries(allUsersByRoom).map(([room, users]) => [
                       room,
                       users.filter(user => {
-                        if(user.id === socket.id){
+                        if(user.socketId === socket.id){
                             removedUser = user;
                             return false;
                         }else{
@@ -234,7 +235,7 @@ async function run() {
                     Object.entries(allUsersByRoom).map(([room, users]) => [
                       room,
                       users.filter(user => {
-                        if(user.id === socket.id){
+                        if(user.socketId === socket.id){
                             removedUser = user;
                             return false;
                         }else{
