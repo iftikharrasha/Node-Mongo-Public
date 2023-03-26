@@ -553,14 +553,6 @@ async function run() {
             }
         }
 
-        app.get('/_next/*', (req, res) => {
-            handle(req, res);
-        });
-        
-        app.get('/socket.io/*', (req, res) => {
-            handle(req, res);
-        });
-
         //Get Api for all tournaments
         app.get('/api/tournament/all', async (req, res) => {
             if (req.headers.authorization) {
