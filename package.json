@@ -2,9 +2,9 @@
   "name": "node-mongo-public",
   "version": "1.0.0",
   "description": "",
-  "main": "index.jsx",
+  "main": "index.js",
   "scripts": {
-    "start": "node index.jsx",
+    "start": "node index.js",
     "dev": "nodemon index",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "echo 'Nothing to build'"

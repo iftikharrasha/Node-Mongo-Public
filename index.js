@@ -25,7 +25,7 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 
 async function run() {
     try {
-        client.connect();
+        await client.connect();
 
         const database = client.db("E24Games");
         const CHAT_BOT = 'ChatBot';
