@@ -76,7 +76,7 @@ async function run() {
 
                 socket.emit('receive_notification', {
                     type: "registration_account",
-                    subject: `Welcome ${userName} to real time notyf `,
+                    subject: `Welcome ${userName} to real time notyf`,
                     subjectPhoto: "http/support",
                     invokedByName: "E24Support",
                     invokedById: "640e1f2f5241adf08384a264",
