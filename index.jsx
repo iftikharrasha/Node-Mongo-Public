@@ -76,7 +76,7 @@ async function run() {
 
                 socket.emit('receive_notification', {
                     type: "registration_account",
-                    subject: `Welcome user to your notyf ${userName}`,
+                    subject: `Welcome ${userName} to real time notyf `,
                     subjectPhoto: "http/support",
                     invokedByName: "E24Support",
                     invokedById: "640e1f2f5241adf08384a264",
@@ -98,8 +98,10 @@ async function run() {
             })
 
             socket.on("send_notification", async (data) => {
+                const { type, receivedById } = data; 
+
                 // Send to the specified user only
-                notificationNamespace.to(userId).emit("receive_notification", data); 
+                notificationNamespace.to(receivedById).emit("receive_notification", data); 
 
                 // Save notification to database
                 // const result = await notifications.insertOne(data);
@@ -149,7 +151,7 @@ async function run() {
                 }
 
                 //allusers are users of all rooms
-                allUsersByRoom[chatRoomId].push({ id: socket.id, roomId: chatRoomId, name: senderName, senderPhoto: senderPhoto, timeStamp: timeStamp });
+                allUsersByRoom[chatRoomId].push({ id: socket.id, roomId: chatRoomId, userName: senderName, photo: senderPhoto, timeStamp: timeStamp });
 
                 //only send the users of this room, since a lot of users will be joining to other rooms as well
                 socket.to(chatRoomId).emit("chatroom_users", allUsersByRoom[chatRoomId]);
@@ -209,13 +211,13 @@ async function run() {
                 );
 
                 // If the user is found
-                if(removedUser?.name) {
+                if(removedUser?.userName) {
                     const userRoomId = removedUser.roomId;
                     allUsersByRoom = updatedUsersByRoom;  // array updated of list of remaining users
                     socket.to(userRoomId).emit("chatroom_users", updatedUsersByRoom[userRoomId]);
 
                     socket.broadcast.to(userRoomId).emit("receive_message", {
-                        message: `${removedUser?.name} has left the room.`,
+                        message: `${removedUser?.userName} has left the room.`,
                         senderName: CHAT_BOT,
                         senderPhoto: CHAT_BOT_IMAGE,
                         timeStamp: timeStamp,
@@ -242,13 +244,13 @@ async function run() {
                     ])
                   );
 
-                if(removedUser?.name) {
+                if(removedUser?.userName) {
                     const userRoomId = removedUser.roomId;
                     allUsersByRoom = updatedUsersByRoom;  // array updated of list of remaining users
                     socket.to(userRoomId).emit("chatroom_users", updatedUsersByRoom[userRoomId]);
 
                     socket.broadcast.to(userRoomId).emit("receive_message", {
-                        message: `${removedUser?.name} has left the room.`,
+                        message: `${removedUser?.userName} has left the room.`,
                         senderName: CHAT_BOT,
                         senderPhoto: CHAT_BOT_IMAGE,
                         timeStamp: Date.now(),
