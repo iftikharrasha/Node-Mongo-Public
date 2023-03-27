@@ -91,7 +91,8 @@ async function run() {
                 //send all messages from DB
                 const query = { receivedById: userId };
                 const cursor = notifications.find(query);
-                const last10Notifications =  await cursor.sort({ _id: -1 }).limit(10).toArray();
+                // const last10Notifications =  await cursor.sort({ _id: -1 }).limit(10).toArray();
+                const last10Notifications =  await cursor.toArray();
     
                 if (last10Notifications) {
                     socket.emit("last_10_notifications", last10Notifications);
@@ -100,13 +101,30 @@ async function run() {
 
             socket.on("send_notification", async (data) => {
                 const { type, receivedById } = data; 
-                console.log(data)
 
                 // Send to the specified user only
                 notificationNamespace.to(receivedById).emit("receive_notification", data); 
 
                 // Save notification to database
                 // const result = await notifications.insertOne(data);
+            });
+
+            socket.on("read_notification", async (id) => { 
+                const query = { _id: ObjectId(id) };
+                const notification = await notifications.findOne(query);
+
+                if (notification) {
+                    const updatedNotification = await notifications.updateOne(
+                        { _id: ObjectId(id) },
+                        { $set: { read: !notification.read } }
+                    );
+
+                    // console.log(updatedNotification); // log the updated notification
+                }
+                
+
+                // Send to the specified user only
+                // notificationNamespace.to(receivedById).emit("receive_notification", data);
             });
 
             socket.on("disconnect", () => {
