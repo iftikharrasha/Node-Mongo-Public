@@ -71,27 +71,27 @@ async function run() {
                 // Join the user to the notification socket using their unique ID
                 socket.join(userId);
 
-                const now = Date.now(); // Current timestamp
-                const date = moment(now);
-                const timeStamp = date.format('YYYY-MM-DDTHH:mm:ss.SSS');
+                // const now = Date.now(); // Current timestamp
+                // const date = moment(now);
+                // const timeStamp = date.format('YYYY-MM-DDTHH:mm:ss.SSS');
 
-                socket.emit('receive_notification', {
-                    type: "registration_account",
-                    subject: `Welcome ${userName} to real time notyf`,
-                    subjectPhoto: "http/support",
-                    invokedByName: "E24Support",
-                    invokedById: "640e1f2f5241adf08384a264",
-                    receivedByName: userName,
-                    receivedById: userId,
-                    route: "/",
-                    timeStamp,
-                    read: false
-                });
+                // socket.emit('receive_notification', {
+                //     type: "registration_account",
+                //     subject: `Welcome ${userName} to real time notyf`,
+                //     subjectPhoto: "http/support",
+                //     invokedByName: "E24Support",
+                //     invokedById: "640e1f2f5241adf08384a264",
+                //     receivedByName: userName,
+                //     receivedById: userId,
+                //     route: "/",
+                //     timeStamp,
+                //     read: false
+                // });
 
                 //send all messages from DB
                 const query = { receivedById: userId };
-                const cursor = notifications.find(query);
                 // const last10Notifications =  await cursor.sort({ _id: -1 }).limit(10).toArray();
+                const cursor = notifications.find(query).sort({ timeStamp: -1 });
                 const last10Notifications =  await cursor.toArray();
     
                 if (last10Notifications) {
