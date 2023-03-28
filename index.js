@@ -121,11 +121,22 @@ async function run() {
 
                     // console.log(updatedNotification); // log the updated notification
                 }
-                
+            }); 
+            
+            
+            // socket.on("friend_notification", async (data) => { 
+            //     const { type, id } = data; 
 
-                // Send to the specified user only
-                // notificationNamespace.to(receivedById).emit("receive_notification", data);
-            });
+            //     if(type === "accept"){
+            //         // Send to the specified user only
+            //         notificationNamespace.to(receivedById).emit("receive_notification", data);
+            //     }else{
+
+            //     } 
+                
+            //     // Send to the specified user only
+            //     // notificationNamespace.to(receivedById).emit("receive_notification", data);
+            // });
 
             socket.on("disconnect", () => {
                 console.log("Disconnected from notification socket");
