@@ -1,5 +1,12 @@
 require('dotenv').config();
 const express = require('express');
+
+const mongoose = require('mongoose');
+const AdminJS = require('adminjs')
+const AdminJSExpress = require('@adminjs/express')
+const AdminJSMongoose = require('@adminjs/mongoose');
+const { Person } = require('./src/models/person-model'); // import the Person model
+
 const { MongoClient } = require('mongodb');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -9,7 +16,8 @@ const ObjectId = require('mongodb').ObjectId;
 const moment = require('moment');
 
 // const Message = require("./src/models/message-model.jsx");
-
+const uri = `mongodb+srv://${process.env.REACT_APP_USERNAME}:${process.env.REACT_APP_PASSWORD}@cluster0.ce7h0.mongodb.net/?retryWrites=true&w=majority`;
+const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 const port = process.env.PORT || 5000;
 
 const http = require('http');
@@ -19,10 +27,36 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+        
+AdminJS.registerAdapter(AdminJSMongoose);
 
-const uri = `mongodb+srv://${process.env.REACT_APP_USERNAME}:${process.env.REACT_APP_PASSWORD}@cluster0.ce7h0.mongodb.net/?retryWrites=true&w=majority`;
-const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+// const adminId = '63cedf7d249ceb980798ce47'; // Replace with your user ID
+// const adminUser = await users.findOne({ _id: new ObjectId(adminId) });
 
+adminUser = {
+    name: "John",
+    email: "john@example.com",
+}
+
+// create an instance of AdminJS
+const admin = new AdminJS({
+    resources: [
+      {
+        resource: Person,
+        options: {
+          properties: {
+            // define your resource properties here
+          },
+        },
+      },
+    ],
+    rootPath: '/admin',
+});
+
+
+// mount AdminBro to a route in your app
+const adminRouter = AdminJSExpress.buildRouter(admin)
+app.use(admin.options.rootPath, adminRouter)
 
 async function run() {
     try {
