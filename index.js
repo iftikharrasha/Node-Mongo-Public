@@ -45,6 +45,7 @@ async function run() {
         const giftcards = database.collection("giftcards");
         const versionTable = database.collection("versionTable");
         const chatRoom = database.collection("chatRoom");
+        const inboxMessages = database.collection("inboxMessages");
         const notifications = database.collection("notifications");
 
         // Create an io server and allow for CORS from ORIGIN with GET and POST methods
@@ -60,6 +61,7 @@ async function run() {
         });
 
         const chatNamespace = io.of("/chatRoom");
+        const inboxChatNamespace = io.of('/inboxchat');
         const notificationNamespace = io.of("/notifications");
 
         notificationNamespace.on("connection", (socket) => {
@@ -70,23 +72,6 @@ async function run() {
                 const { userId } = data; // Data sent from client when join_room event emitted
                 // Join the user to the notification socket using their unique ID
                 socket.join(userId);
-
-                // const now = Date.now(); // Current timestamp
-                // const date = moment(now);
-                // const timeStamp = date.format('YYYY-MM-DDTHH:mm:ss.SSS');
-
-                // socket.emit('receive_notification', {
-                //     type: "registration_account",
-                //     subject: `Welcome ${userName} to real time notyf`,
-                //     subjectPhoto: "http/support",
-                //     invokedByName: "E24Support",
-                //     invokedById: "640e1f2f5241adf08384a264",
-                //     receivedByName: userName,
-                //     receivedById: userId,
-                //     route: "/",
-                //     timeStamp,
-                //     read: false
-                // });
 
                 //send all messages from DB
                 const query = { receivedById: userId };
@@ -118,28 +103,50 @@ async function run() {
                         { _id: ObjectId(id) },
                         { $set: { read: !notification.read } }
                     );
-
-                    // console.log(updatedNotification); // log the updated notification
                 }
             }); 
-            
-            
-            // socket.on("friend_notification", async (data) => { 
-            //     const { type, id } = data; 
-
-            //     if(type === "accept"){
-            //         // Send to the specified user only
-            //         notificationNamespace.to(receivedById).emit("receive_notification", data);
-            //     }else{
-
-            //     } 
-                
-            //     // Send to the specified user only
-            //     // notificationNamespace.to(receivedById).emit("receive_notification", data);
-            // });
 
             socket.on("disconnect", () => {
                 console.log("Disconnected from notification socket");
+            });
+        });
+
+        inboxChatNamespace.on("connection", (socket) => {
+            const { userId } = socket.handshake.query;
+            console.log('New user connected to chat namespace');
+          
+            socket.on('join_inbox', async (data) => {
+                const { roomId, userId } = data;
+                console.log(`User joined room ${roomId}`);
+                socket.join(roomId);
+
+                //send all messages from DB
+                const query = { roomId: roomId };
+                const cursor = inboxMessages.find(query);
+                const last100Texts = await cursor.limit(25).toArray();
+
+                if (last100Texts) {
+                    socket.emit("last_100_texts", last100Texts);
+                }
+            });
+          
+            socket.on('send_message', async (data) => {
+                const { message, senderName, roomId, timeStamp, senderPhoto } = data;
+
+                // Broadcast the message to all users in the room
+                inboxChatNamespace.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, timeStamp, sound: "msg" }); 
+
+                // Save message to database
+                const result = await inboxMessages.insertOne(data);
+            });
+            
+            socket.on("typing", ({ roomId, userName }) => {
+                console.log(`${userName} is typing on...`, roomId);
+                socket.to(roomId).emit("userTyping", userName);
+            });
+          
+            socket.on('disconnect', () => {
+              console.log(`${userId} disconnected from inbox`);
             });
         });
 
