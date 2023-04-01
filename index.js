@@ -1,6 +1,8 @@
 require('dotenv').config();
+const http = require('http');
 const express = require('express');
 const { MongoClient } = require('mongodb');
+const { Server } = require('socket.io');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const uuid = require('uuid');
@@ -12,8 +14,6 @@ const moment = require('moment');
 
 const port = process.env.PORT || 5000;
 
-const http = require('http');
-const { Server } = require('socket.io');
 
 const app = express();
 
@@ -67,13 +67,6 @@ async function run() {
         notificationNamespace.on("connection", (socket) => {
             const { userId, userName } = socket.handshake.query;
 
-            // socket.on('join_tracking', async (data) => {
-            //     console.log(`User activity started socketID: ${socket.id}`);
-            //     const { userId } = data; // Data sent from client when join_room event emitted
-            //     // Join the user to the notification socket using their unique ID
-            //     socket.join(userId);
-            // })
-
             socket.on('join_notifications', async (data) => {
                 console.log(`User connected to notyf socketID: ${socket.id}`);
                 const { userId } = data; // Data sent from client when join_room event emitted
@@ -89,6 +82,28 @@ async function run() {
                 if (last10Notifications) {
                     socket.emit("last_10_notifications", last10Notifications);
                 }
+
+                //now to get all the latest unique messages from one to one convo
+                const uniqueSenders = [];
+                const query2 = { receiverId: userId };
+                const cursor2 = await inboxMessages.distinct('senderId', query2);
+                uniqueSenders.push(...cursor2);
+
+                 // Get the latest message for each senderId
+                const latestInbox = await Promise.all(
+                    uniqueSenders.map(async (senderId) => {
+                        const latestMessage = await inboxMessages
+                            .find({ senderId, receiverId: userId })
+                            .sort({ timeStamp: -1 })
+                            .limit(1)
+                            .toArray();
+
+                        return latestMessage[0];
+                    })
+                );
+
+                socket.emit('track_uniqueInbox', latestInbox);
+
             })
 
             socket.on("send_notification", async (data) => {
@@ -136,7 +151,7 @@ async function run() {
             });
           
             socket.on('send_message', async (data) => {
-                const { message, senderName, senderPhoto, roomId, room, senderId, timeStamp, senderPermissions, receiverId, read } = data;
+                const { message, senderName, senderPhoto, roomId, room, senderId, timeStamp, senderPermissions, receiverId, read, messageCount } = data;
 
                 // Broadcast the message to all users in the room
                 inboxChatNamespace.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, timeStamp, sound: "msg" }); 
@@ -145,7 +160,7 @@ async function run() {
                 const result = await inboxMessages.insertOne(data);
 
                 // Emit the same message to the notificationNamespace
-                notificationNamespace.to(receiverId).emit("track_inbox", { 
+                notificationNamespace.to(receiverId).emit("track_incoming", { 
                     message, 
                     senderName, 
                     senderPhoto, 
@@ -155,7 +170,9 @@ async function run() {
                     timeStamp, 
                     senderPermissions, 
                     receiverId, 
-                    read 
+                    read,
+                    messageCount,
+                    sound: "msg"
                 });
             });
             
