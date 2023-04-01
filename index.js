@@ -67,6 +67,13 @@ async function run() {
         notificationNamespace.on("connection", (socket) => {
             const { userId, userName } = socket.handshake.query;
 
+            // socket.on('join_tracking', async (data) => {
+            //     console.log(`User activity started socketID: ${socket.id}`);
+            //     const { userId } = data; // Data sent from client when join_room event emitted
+            //     // Join the user to the notification socket using their unique ID
+            //     socket.join(userId);
+            // })
+
             socket.on('join_notifications', async (data) => {
                 console.log(`User connected to notyf socketID: ${socket.id}`);
                 const { userId } = data; // Data sent from client when join_room event emitted
@@ -123,21 +130,33 @@ async function run() {
                 //send all messages from DB
                 const query = { roomId: roomId };
                 const cursor = inboxMessages.find(query);
-                const last100Texts = await cursor.limit(25).toArray();
+                const last100Texts = await cursor.toArray();
 
-                if (last100Texts) {
-                    socket.emit("last_100_texts", last100Texts);
-                }
+                socket.emit("last_100_texts", last100Texts);
             });
           
             socket.on('send_message', async (data) => {
-                const { message, senderName, roomId, timeStamp, senderPhoto } = data;
+                const { message, senderName, senderPhoto, roomId, room, senderId, timeStamp, senderPermissions, receiverId, read } = data;
 
                 // Broadcast the message to all users in the room
                 inboxChatNamespace.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, timeStamp, sound: "msg" }); 
 
                 // Save message to database
                 const result = await inboxMessages.insertOne(data);
+
+                // Emit the same message to the notificationNamespace
+                notificationNamespace.to(receiverId).emit("track_inbox", { 
+                    message, 
+                    senderName, 
+                    senderPhoto, 
+                    roomId, 
+                    room, 
+                    senderId, 
+                    timeStamp, 
+                    senderPermissions, 
+                    receiverId, 
+                    read 
+                });
             });
             
             socket.on("typing", ({ roomId, userName }) => {
@@ -170,6 +189,7 @@ async function run() {
                     message: `${senderName} has joined the room`,
                     senderName: CHAT_BOT,
                     senderPhoto: CHAT_BOT_IMAGE,
+                    read: false,
                     timeStamp,
                     sound: "bot"
                 });
@@ -179,6 +199,7 @@ async function run() {
                     message: `Welcome ${senderName}`,
                     senderName: CHAT_BOT,
                     senderPhoto: CHAT_BOT_IMAGE,
+                    read: false,
                     timeStamp,
                     sound: "bot"
                 });
@@ -203,13 +224,21 @@ async function run() {
                 if (last100Messages) {
                     socket.emit("last_100_messages", last100Messages);
                 }
+                
+                //count how many unread notifications
+                // const query2 = { roomId: chatRoomId, read: false, senderId: { $ne: userId } };
+                // const count = await chatRoom.countDocuments(query2);
+
+                // if (count) {
+                //     socket.emit("get_unread_counts", count);
+                // }
             });
 
             socket.on("send_message", async (data) => {
-                const { message, senderName, roomId, timeStamp, senderPhoto } = data;
+                const { message, senderName, roomId, timeStamp, senderPhoto, read, senderId } = data;
 
                 // Send to all users in room, including sender
-                chatNamespace.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, timeStamp, sound: "msg" }); 
+                chatNamespace.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, timeStamp, read, sound: "msg" }); 
 
                 // Save message to database
                 const result = await chatRoom.insertOne(data);
@@ -259,6 +288,7 @@ async function run() {
                         senderName: CHAT_BOT,
                         senderPhoto: CHAT_BOT_IMAGE,
                         timeStamp: timeStamp,
+                        read: false,
                         sound: "bot",
                     });
                 }
@@ -292,6 +322,7 @@ async function run() {
                         senderName: CHAT_BOT,
                         senderPhoto: CHAT_BOT_IMAGE,
                         timeStamp: Date.now(),
+                        read: false,
                         sound: "bot",
                     });
                 }
