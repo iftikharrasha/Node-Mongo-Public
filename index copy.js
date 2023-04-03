@@ -1,6 +1,5 @@
-const dotenv = require('dotenv').config();
+require('dotenv').config();
 const http = require('http');
-
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const { Server } = require('socket.io');
@@ -11,11 +10,6 @@ const _ = require('lodash');
 const ObjectId = require('mongodb').ObjectId;
 const moment = require('moment');
 
-const { connectToServer } = require('./src/utils/dbConnect.js');
-const tournamentRoute = require('./src/routes/v1/tournament.route.js');  //MVC
-const leaderboardsRoute = require('./src/routes/v1/leaderboards.route.js');  //MVC
-const errHandler = require('./src/middlewares/errHandler');
-
 // const Message = require("./src/models/message-model.jsx");
 
 const port = process.env.PORT || 5000;
@@ -23,28 +17,16 @@ const port = process.env.PORT || 5000;
 
 const app = express();
 
-app.use(cors()); //MVC This is a application level middleware
+app.use(cors());
 app.use(express.json());
-
 
 const uri = `mongodb+srv://${process.env.REACT_APP_USERNAME}:${process.env.REACT_APP_PASSWORD}@cluster0.ce7h0.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 
-connectToServer((err) => {
-    if(!err){
-        app.listen(port, () => console.log('Server is loading at port@5000'));
-    }else{
-        console.log(err)
-    }
-})   //MVC
-
-app.use("/api/v1/tournament", tournamentRoute)  //MVC
-app.use("/api/v1/tournament/leaderboards", leaderboardsRoute)  //MVC
-
 async function run() {
     try {
-        // await client.connect();
+        await client.connect();
 
         const database = client.db("E24Games");
         const CHAT_BOT = 'ChatBot';
@@ -654,6 +636,18 @@ async function run() {
                 }
             }
         }
+
+        //Get Api for all tournaments
+        app.get('/api/tournament/all', async (req, res) => {
+            if (req.headers.authorization) {
+                if (req.headers.authorization.startsWith('Bearer ')) {
+                    const token = req.headers.authorization.split(' ')[1];
+                } else {
+                    console.log('Should start with Bearer')
+                }
+            }
+            handleListApiResponse(req, res, tournaments, 'tournaments');
+        });
         
         //Get Api for leaderboards N.B: which tournaments?
         app.get('/api/tournament/leaderboards', async (req, res) => {
@@ -678,6 +672,11 @@ async function run() {
         //Get Api for static landing data with language
         app.get('/api/wallet/topup', async (req, res) => {
             handleListApiResponse(req, res, giftcards, 'giftcards');
+        });
+        
+        //Get Api for details of a tournament
+        app.get('/api/tournament/details/:id', async (req, res) => {
+            handleSingleApiResponse(req, res, tournaments);
         });
 
         //Get Api for chatroom under tournament
@@ -775,6 +774,102 @@ async function run() {
                 }
             }
         })
+
+        //Get Api for details of a tournament
+        app.get('/api/tournament/leaderboards/:id', async (req, res) => {
+            let response = {
+                success: true,
+                status: 200,
+                signed_in: false,
+                version: 1,
+                data: [],
+                error: null
+            }
+
+            if(!req.query.version){
+                response.success = false;
+                response.status = 400;
+                response.error = {
+                    code: 400,
+                    message: "Missing version query parameter!",
+                    target: "client side api calling issue"
+                }
+                res.send(response);
+            }else{
+                const id = req.params.id;
+    
+                // 1. Check if request is valid
+                if (!id) {
+                    response.success = false;
+                    response.status = 400;
+                    response.error = {
+                        code: 400,
+                        message: "Missing tournament id in the request!",
+                        target: "client side api calling issue"
+                    }
+                    res.send(response);
+                }else{
+                    const clientVersion = parseInt(req.query.version);
+                    const query = { tId: id };
+                    
+                    try {
+                        const cursor = leaderboards.find(query);
+                        const data = await cursor.toArray();
+        
+                        if (!data) {
+                            response.success = false;
+                            response.status = 404;
+                            response.error = {
+                                code: 404,
+                                message: "Tournament details not found!",
+                                target: "database"
+                            }
+                        }else{
+                            try {
+                                if (data[0].version > clientVersion) {
+                                    response.data = data[0];
+                                    response.version = data[0].version;
+                                }else {
+                                    response.status = 304;
+                                    response.version = clientVersion;
+                                    response.error = {
+                                        code: 304,
+                                        message: "Client have the latest version",
+                                        target: "fetch data from the redux store"
+                                    }
+                                }
+                            } catch (err) {
+                                response.data = null;
+                                response.success = false;
+                                response.status = 500;
+                                response.version = clientVersion;
+                                response.error = {
+                                    code: 500,
+                                    message: "An Internal Error Has Occurred!",
+                                    target: "approx what the error came from"
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.log(err);
+                        res.send({
+                            success: false,
+                            status: 500,
+                            data: null,
+                            signed_in: false,
+                            version: 1,
+                            error: { 
+                                code: 500, 
+                                message: "An Internal Error Has Occurred!",
+                                target: "approx what the error came from", 
+                            }
+                        });
+                    }
+            
+                    res.send(response);
+                }
+            }
+        });
         
         //post Api for login
         app.post('/api/account/login', async (req, res) => {
@@ -968,6 +1063,8 @@ async function run() {
             }
         });
 
+        server.listen(port, () => console.log('Server is loading at port@5000'));
+
 
         //Get Api for offers
         // app.post('/api/Quiz/StartQuiz', async (req, res) => {
@@ -1005,18 +1102,4 @@ run().catch(console.dir);
 
 app.get('/', (req, res) => {
     res.send('Server is loading!');
-})
-
-app.all('*', (req, res) => {
-    res.send('No routes found!');
-})
-
-//global error handler
-app.use(errHandler);
-
-//if app fails to load
-process.on("unhandledRejection", (error) => {
-    app.close(() => {
-        process.exit(1)
-    })
 })
