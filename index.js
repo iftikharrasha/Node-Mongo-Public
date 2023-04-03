@@ -103,7 +103,6 @@ async function run() {
                 );
 
                 socket.emit('track_uniqueInbox', latestInbox);
-
             })
 
             socket.on("send_notification", async (data) => {
