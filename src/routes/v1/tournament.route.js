@@ -28,6 +28,10 @@ router
 .route('/delete/:id')
 .delete(tournamentControllers.deleteTournamentDetails)
 
+router
+.route('/leaderboards/:id')
+.get(tournamentControllers.getLeaderboardDetails)
+
 //and so on
 
 module.exports = router;

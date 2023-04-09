@@ -14,7 +14,15 @@ const getTournamentDetailsService = async (id) => {
     return tournament;
 }
 
+const getLeaderboardDetailsService = async (id) => {
+    const db = getDb();
+    const query = { tId: id };
+    const tournament = await db.collection("leaderboards").findOne(query);
+    return tournament;
+}
+
 module.exports = {
     getAllTournamentsService,
     getTournamentDetailsService,
+    getLeaderboardDetailsService
 }

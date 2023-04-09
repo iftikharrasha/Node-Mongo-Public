@@ -1,63 +1,44 @@
 const { ObjectId } = require("mongodb");
-const { getLandingStaticsService } = require("../services/statics.service");
+const { getTopupGifcardsService } = require("../services/wallet.service");
 const { getVersionTableService } = require("../services/versionTable.service");
 
-const getLandingStatics = async (req, res, next) => {
+const getTopupGifcards = async (req, res, next) => {
     try{
         let response = {
             success: true,
             status: 200,
             signed_in: false,
             version: 1,
-            data: {},
+            data: [],
             error: null
         }
-
-        const { version, country } = req.query;
-
-        if(!version){
+    
+        if(!req.query.version){
             response.success = false;
             response.status = 400;
             response.error = {
                 code: 400,
                 message: "Missing version query parameter!",
-                target: "client side api calling issue send"
-            }
-            res.send(response);
-        }else if(!country){
-            response.success = false;
-            response.status = 400;
-            response.error = {
-                code: 400,
-                message: "Missing country query parameter!",
-                target: "client side api calling issue send"
+                target: "client side api calling issue"
             }
             res.send(response);
         }else{
-            const clientVersion = parseInt(version);
-            let serverVersion = 0;
-
-            const versionData = await getVersionTableService();
-            
-            const tableData = versionData.find( item => item.table === "staticLanding");
-            if (tableData && tableData.version) {
-                serverVersion = tableData.version;
-            }
+            const clientVersion = parseInt(req.query.version);
             
             try {
-                const data = await getLandingStaticsService();
-                if (!data[country]) {
-                    response.success = false;
-                    response.status = 404;
-                    response.error = {
-                        code: 404,
-                        message: `Landing details not found for lang=${country}!`,
-                        target: "database"
-                    }
-                }else{
+                const data = await getTopupGifcardsService();
+                const versionData = await getVersionTableService();
+
+                if (data.length > 0) {
                     try {
+                        let serverVersion = 0;
+                        const tableData = versionData.find( item => item.table === "giftcards");
+                        if (tableData && tableData.version) {
+                            serverVersion = tableData.version;
+                        }
+
                         if (serverVersion > clientVersion) {
-                            response.data = data[country];
+                            response.data = data;
                             response.version = serverVersion;
                         }else {
                             response.status = 304;
@@ -72,7 +53,7 @@ const getLandingStatics = async (req, res, next) => {
                         response.data = null;
                         response.success = false;
                         response.status = 500;
-                        response.version = clientVersion;
+                        response.version = serverVersion;
                         response.error = {
                             code: 500,
                             message: "An Internal Error Has Occurred!",
@@ -80,7 +61,6 @@ const getLandingStatics = async (req, res, next) => {
                         }
                     }
                 }
-                res.send(response);
             } catch (err) {
                 console.log(err);
                 res.send({
@@ -96,6 +76,8 @@ const getLandingStatics = async (req, res, next) => {
                     }
                 });
             }
+    
+            res.send(response);
         }
     }catch(err){
        next(err);
@@ -103,5 +85,5 @@ const getLandingStatics = async (req, res, next) => {
 }
 
 module.exports = {
-    getLandingStatics,
+    getTopupGifcards,
 }
