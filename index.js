@@ -22,7 +22,7 @@ const port = process.env.PORT || 5000;
 
 const app = express();
 
-app.use(cors()); //MVC This is a application level middleware
+app.use(cors());
 app.use(express.json());
 
 
@@ -46,7 +46,7 @@ app.use("/api/v1/wallet", walletRoute)
 
 async function run() {
     try {
-        // await client.connect();
+        await client.connect();
 
         const database = client.db("E24Games");
         const CHAT_BOT = 'ChatBot';
@@ -56,8 +56,6 @@ async function run() {
         let timeout = 120000;
         let allUsersByRoom = {};
 
-        const users = database.collection("users");
-        const giftcards = database.collection("giftcards");
         const chatRoom = database.collection("chatRoom");
         const inboxMessages = database.collection("inboxMessages");
         const notifications = database.collection("notifications");

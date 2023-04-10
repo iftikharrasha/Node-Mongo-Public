@@ -28,8 +28,6 @@ const getAllTournaments = async (req, res, next) => {
 
             const data = await getAllTournamentsService();
             const versionData = await getVersionTableService();
-
-            console.log(data);
     
             if(data.length > 0){
                 try {
@@ -277,7 +275,7 @@ const deleteTournamentDetails = async (req, res, next) => {
 
         const query = { _id: ObjectId(id) };
         const data = await db.collection("tournaments").deleteOne(query);
-        console.log(data);
+        // console.log(data);
 
         if(!data.deletedCount){
             res.status(400).send({
@@ -313,7 +311,7 @@ const addANewTournament = async (req, res, next) => {
 
         const newTournament = req.body;
         const data = await db.collection("tournaments").insertOne(newTournament);
-        console.log(data);
+        // console.log(data);
 
         if(!data.insertedId){
             res.status(400).send({ status: false, error: "something went wrong" });
