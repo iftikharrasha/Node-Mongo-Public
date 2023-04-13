@@ -19,7 +19,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const uri = `mongodb+srv://${process.env.REACT_APP_USERNAME}:${process.env.REACT_APP_PASSWORD}@cluster0.ce7h0.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.APP_USERNAME}:${process.env.APP_PASSWORD}@cluster0.ce7h0.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 
@@ -53,7 +53,7 @@ async function run() {
 
         const io = new Server(server, {
             cors: {
-                origin: `${process.env.REACT_APP_CLIENT_ORIGIN}`,
+                origin: `${process.env.APP_CLIENT_ORIGIN}`,
                 methods: ['GET', 'POST'],
             },
             allowEIO3: true
@@ -664,7 +664,7 @@ async function run() {
         })
 
         //Get Api for static landing data with language
-        app.get('/api/settings/landing', async (req, res) => {
+        app.get('/api/statics/landing', async (req, res) => {
             handleStaticApiResponse(req, res, staticLanding, 'staticLanding');
         });
 
@@ -674,7 +674,7 @@ async function run() {
         });
         
         //Get Api for details of a tournament
-        app.get('/api/tournament/details/:id', async (req, res) => {
+        app.get('/api/tournament/:id', async (req, res) => {
             handleSingleApiResponse(req, res, tournaments);
         });
 
@@ -922,7 +922,7 @@ async function run() {
                             }
                         });
                     } else {
-                        const secret = process.env.REACT_APP_PASSWORD;
+                        const secret = process.env.APP_PASSWORD;
                         const options = { expiresIn: '24h' };
                         const payload = {
                             sub: user._id,

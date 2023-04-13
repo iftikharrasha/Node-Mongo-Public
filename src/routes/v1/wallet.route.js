@@ -7,7 +7,14 @@ const walletControllers = require('../../controllers/wallet.controller');
 
 router
 .route('/topup')
-.get(walletControllers.getTopupGifcards)
+.get(walletControllers.getTopups)
+.post(walletControllers.createTopup)
+
+router
+.route("/topup/:id")
+.get(walletControllers.getTopupById)
+.patch(walletControllers.updateTopupById)
+.delete(walletControllers.deleteTopupById)
 
 
 module.exports = router;

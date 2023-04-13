@@ -1,7 +1,7 @@
 const { ObjectId } = require("mongodb");
 const { getDb } = require("../utils/dbConnect");
-const { getAllTournamentsService, getTournamentDetailsService, getLeaderboardDetailsService } = require("../services/tournament.sevice");
-const { getVersionTableService } = require("../services/versionTable.service");
+const { getAllTournamentsService, getTournamentDetailsService, getLeaderboardDetailsService } = require("../services/tournament.sevice.js");
+const { getVersionTableService } = require("../services/versionTable.service.js");
 
 const getAllTournaments = async (req, res, next) => {
     try{

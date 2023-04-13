@@ -2,7 +2,7 @@
 // https://github.com/Abdify/express-mvc-acc
 
 const { MongoClient } = require('mongodb');
-const uri = `mongodb+srv://${process.env.REACT_APP_USERNAME}:${process.env.REACT_APP_PASSWORD}@cluster0.ce7h0.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `${process.env.APP_DATABASE_URI}`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
 let dbConnection;
@@ -14,7 +14,7 @@ module.exports = {
           reject(err);
         } else {
           dbConnection = db.db('E24Games');
-          console.log('succeeded to connect to mongodb server');
+          console.log('Succeeded to connect to mongodb server');
           resolve(dbConnection);
         }
       });

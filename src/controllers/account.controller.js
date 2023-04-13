@@ -54,7 +54,7 @@ const userLogin = async (req, res, next) => {
                         }
                     });
                 } else {
-                    const secret = process.env.REACT_APP_PASSWORD;
+                    const secret = process.env.APP_PASSWORD;
                     const options = { expiresIn: '24h' };
                     const payload = {
                         sub: user._id,

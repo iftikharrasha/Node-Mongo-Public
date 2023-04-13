@@ -23,7 +23,7 @@ async function initiateSocket(app, database, port) {
 
         const io = new Server(server, {
             cors: {
-                origin: `${process.env.REACT_APP_CLIENT_ORIGIN}`,
+                origin: `${process.env.APP_CLIENT_ORIGIN}`,
                 methods: ['GET', 'POST'],
             },
             allowEIO3: true
