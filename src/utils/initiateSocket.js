@@ -1,11 +1,10 @@
+const dotenv = require('dotenv').config();
 const http = require('http');
 const { Server } = require('socket.io');
 const ObjectId = require('mongodb').ObjectId;
 const moment = require('moment');
 
-const port = process.env.PORT || 5000;
-
-async function initiateSocket(app, database) {
+async function initiateSocket(app, database, port) {
     try {
         const CHAT_BOT = 'ChatBot';
         const CHAT_BOT_IMAGE = 'https://img.freepik.com/free-vector/cute-cat-gaming-cartoon_138676-2969.jpg';
