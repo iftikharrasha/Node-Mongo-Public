@@ -156,7 +156,7 @@ const getTopupById = async (req, res, next) => {
     }
 };
 
-const createTopup = async (req, res) => {
+const createTopup = async (req, res, next) => {
     let response = {
         success: true,
         status: 200,

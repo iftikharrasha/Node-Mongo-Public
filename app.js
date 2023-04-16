@@ -29,10 +29,10 @@ app.all('*', (req, res) => {
 app.use(errHandler);
 
 //if app fails to load
-process.on("unhandledRejection", (error) => {
-    app.close(() => {
-        process.exit(1)
-    })
-})
+// process.on("unhandledRejection", (error) => {
+//     app.close(() => {
+//         process.exit(1)
+//     })
+// })
 
 module.exports = app;

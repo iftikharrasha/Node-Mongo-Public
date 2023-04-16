@@ -1,5 +1,11 @@
 const { getDb } = require("../utils/dbConnect")
 const { ObjectId } = require("mongodb");
+const User = require("../models/user.model");
+
+const userSignupService = async (data) => {
+    const user = await User.create(data);
+    return user;
+};
 
 const userLoginService = async (emailAddress, password) => {
     const db = getDb();
@@ -16,6 +22,7 @@ const getUserProfileService = async (id) => {
 }
 
 module.exports = {
+    userSignupService,
     userLoginService,
     getUserProfileService,
 }

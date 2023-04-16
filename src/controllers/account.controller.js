@@ -1,20 +1,73 @@
 const { ObjectId } = require("mongodb");
-const { userLoginService, getUserProfileService } = require("../services/account.service");
 const jwt = require('jsonwebtoken');
 const uuid = require('uuid');
 const _ = require('lodash');
+const { userSignupService, userLoginService, getUserProfileService } = require("../services/account.service");
+// const { generateToken } = require("../utils/token");
 
-const userLogin = async (req, res, next) => {
-    try{
-        let response = {
-            success: true,
-            status: 200,
+const userSignup = async (req, res) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null
+    }
+    try {
+        const user = await userSignupService(req.body);
+        //   const token = user.generateConfirmationToken();
+        //   await user.save({ validateBeforeSave: false });
+    
+        //   const mailData = {
+        //     to: [user.email],
+        //     subject: "Verify your Account",
+        //     text: `Thank you for creating your account. Please confirm your account here: ${
+        //       req.protocol
+        //     }://${req.get("host")}${req.originalUrl}/confirmation/${token}`,
+        //   };
+    
+        //   await sendMailWithMailGun(mailData);
+
+        if(!user){
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "Could not create User",
+                target: "service issue"
+            }
+        }else{
+            response.data = user;
+        }
+        res.send(response);
+    } catch (error) {
+        console.log(error);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
             signed_in: false,
             version: 1,
-            data: {},
-            error: null
-        }
+            error: { 
+                code: 500, 
+                message: error._message,
+                target: "schema expects valid format", 
+            }
+        });
+    }
+};
 
+const userLogin = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null
+    }
+    try{
         const { emailAddress, password } = req.body;
 
         if(!emailAddress){
@@ -196,6 +249,7 @@ const getUserProfile = async (req, res, next) => {
 }
 
 module.exports = {
+    userSignup,
     userLogin,
     getUserProfile,
 }

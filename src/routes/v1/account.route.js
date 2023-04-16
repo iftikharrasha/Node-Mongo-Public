@@ -6,6 +6,9 @@ const accountControllers = require('../../controllers/account.controller');
 // base route: /api/v1/account
 
 router
+.post("/signup", accountControllers.userSignup);
+
+router
 .route('/login')
 .post(accountControllers.userLogin)
 

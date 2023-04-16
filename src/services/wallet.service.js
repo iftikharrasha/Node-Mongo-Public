@@ -1,6 +1,11 @@
 // const { getDb } = require("../utils/dbConnect")
 const Topup = require('../models/topup.model')
 
+const createTopupService = async (data) => {
+    const topup = await Topup.create(data);
+    return topup;
+}
+
 const getTopupsService = async () => {
     // const db = getDb();
     // const giftcards = await db.collection("giftcards").find({}).toArray();
@@ -10,11 +15,6 @@ const getTopupsService = async () => {
 
 const getTopupByIdService = async (id) => {
     const topup = await Topup.findOne({ _id: id });
-    return topup;
-}
-
-const createTopupService = async (data) => {
-    const topup = await Topup.create(data);
     return topup;
 }
 

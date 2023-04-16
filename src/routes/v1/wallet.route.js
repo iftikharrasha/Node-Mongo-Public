@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router()
 const walletControllers = require('../../controllers/wallet.controller');
+const verifyVersion = require("../../middlewares/verifyVersion");
 
-//write js documentation
 // base route: /api/v1/wallet
 
 router
@@ -12,7 +12,7 @@ router
 
 router
 .route("/topup/:id")
-.get(walletControllers.getTopupById)
+.get(verifyVersion, walletControllers.getTopupById)
 .patch(walletControllers.updateTopupById)
 .delete(walletControllers.deleteTopupById)
 
