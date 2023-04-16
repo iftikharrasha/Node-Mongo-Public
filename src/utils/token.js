@@ -1,14 +1,29 @@
-const jwt = require("jsonwebtoken");
+const jwt = require('jsonwebtoken');
+const uuid = require('uuid');
 
-exports.generateToken = (userInfo) => {
+const generateToken = (userInfo) => {
+  const secret = process.env.APP_TOKEN_SECRET;
+  const options = { expiresIn: '24h' };
   const payload = {
-    email: userInfo.email,
-    role: userInfo.role,
+      sub: userInfo._id,
+      name: userInfo.userName,
+      email: userInfo.emailAddress,
+      typ: userInfo.permissions,
+      photo: userInfo.photo,
   };
 
-  const token = jwt.sign(payload, process.env.APP_TOKEN_SECRET, {
-    expiresIn: "7days"
-  });
-
+  // Create a access token
+  const token = jwt.sign(payload, secret, options);
   return token;
 };
+
+const generateRefreshToken = () => {
+  const refreshToken = uuid.v4();
+
+  return refreshToken;
+};
+
+module.exports = {
+  generateToken,
+  generateRefreshToken
+}

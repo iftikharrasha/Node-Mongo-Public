@@ -8,20 +8,31 @@ const { promisify } = require("util");
  */
 
 module.exports = async (req, res, next) => {
+  let response = {
+      success: true,
+      status: 200,
+      signed_in: false,
+      version: 1,
+      data: [],
+      error: null
+  }
   try {
     const token = req.headers?.authorization?.split(" ")?.[1];
 
     if(!token){
-      return res.status(401).json({
-        status: "fail",
-        error: "You are not logged in"
-      });
+      response.success = false;
+      response.status = 401;
+      response.error = {
+          code: 400,
+          message: "You are not authorized to access this",
+          target: "Not logged in"
+      }
+      return res.status(401).json(response);
     }
     
     const decoded = await promisify(jwt.verify)(token, process.env.APP_TOKEN_SECRET);
-    console.log(decoded)
 
-    // const user = User.findOne({ email: decoded.email })
+    // const user = User.findOne({ email: decoded.email }) //if needed we can even send user object from here
     req.user = decoded;
     next();
   } catch (error) {

@@ -1,4 +1,4 @@
-const { getDb } = require("../utils/dbConnect")
+// const { getDb } = require("../utils/dbConnect")
 const Version = require('../models/version.model')
 
 const getVersionTableService = async () => {

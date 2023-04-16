@@ -37,8 +37,7 @@ const updateTopupByIdService = async (id, data) => {
 const deleteTopupByIdService = async (id) => {
     const result = await Topup.findByIdAndDelete({ _id: id });
     return result;
-  };
-
+};
 
 module.exports = {
     getTopupsService,

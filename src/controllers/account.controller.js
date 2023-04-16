@@ -1,9 +1,7 @@
 const { ObjectId } = require("mongodb");
-const jwt = require('jsonwebtoken');
-const uuid = require('uuid');
 const _ = require('lodash');
-const { userSignupService, userLoginService, getUserProfileService } = require("../services/account.service");
-// const { generateToken } = require("../utils/token");
+const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService } = require("../services/account.service");
+const { generateToken, generateRefreshToken } = require("../utils/token");
 
 const userSignup = async (req, res) => {
     let response = {
@@ -38,7 +36,8 @@ const userSignup = async (req, res) => {
                 target: "service issue"
             }
         }else{
-            response.data = user;
+            const cleanedProfile = _.omit(user.toObject(), ['password']);
+            response.data = cleanedProfile;
         }
         res.send(response);
     } catch (error) {
@@ -70,28 +69,19 @@ const userLogin = async (req, res, next) => {
     try{
         const { emailAddress, password } = req.body;
 
-        if(!emailAddress){
+        if(!emailAddress || !password){
             response.success = false;
             response.status = 400;
             response.error = {
                 code: 400,
-                message: "Missing email in the body parameter!",
-                target: "client side api calling issue send"
-            }
-            res.send(response);
-        }else if(!password){
-            response.success = false;
-            response.status = 400;
-            response.error = {
-                code: 400,
-                message: "Missing password in the body parameter!",
+                message: "Please provide your credentials correctly",
                 target: "client side api calling issue send"
             }
             res.send(response);
         }else{
-
             try{
-                const user = await userLoginService(emailAddress, password);
+                // const user = await userLoginService(emailAddress, password);
+                const user = await findUserByEmail(emailAddress);
                 
                 if (!user) {
                     res.send({
@@ -102,56 +92,73 @@ const userLogin = async (req, res, next) => {
                         version: 1,
                         error: { 
                             code: 500, 
-                            message: "Invalid Username and Password!",
-                            target: "approx what the error came from", 
+                            message: "Invalid email address",
+                            target: "Create an account", 
                         }
                     });
                 } else {
-                    const secret = process.env.APP_PASSWORD;
-                    const options = { expiresIn: '24h' };
-                    const payload = {
-                        sub: user._id,
-                        name: user.userName,
-                        email: user.emailAddress,
-                        typ: user.permissions,
-                        photo: user.photo,
-                    };
+                    const isPasswordValid = user.comparePassword(password, user.password);
 
-                     // Create a access token
-                    const token = jwt.sign(payload, secret, options);
+                    if (!isPasswordValid) {
+                        return res.send({
+                            success: false,
+                            status: 401,
+                            data: {},
+                            signed_in: false,
+                            version: 1,
+                            error: { 
+                                code: 500, 
+                                message: "Invalid password",
+                                target: "Create an account", 
+                            }
+                        });
+                    }else if (user.status != "active") {
+                        return res.send({
+                            success: false,
+                            status: 401,
+                            data: {},
+                            signed_in: false,
+                            version: 1,
+                            error: { 
+                                code: 500, 
+                                message: "Your account is not active yet",
+                                target: "Verify your account", 
+                            }
+                        });
+                    }else{
+                        const token = generateToken(user);
+                        const refreshToken = generateRefreshToken(user);
 
-                     // Create a refresh token
-                     const refreshToken = uuid.v4();  //need expiration time
+                        const cleanedProfile = _.omit(user.toObject(), ['password']);
 
+                        response.signed_in = true;
+                        response.jwt = token;
+                        response.refreshToken = refreshToken;
+                        response.data = cleanedProfile;
 
-                    response.signed_in = true;
-                    response.data = {
-                        jwt: token,
-                        refreshToken: refreshToken,
-                        user: user
-                    };
-                    res.send(response);
+                        res.send(response);
+                    }
                 }
             } catch (err) {
-                    console.log(err);
-                    res.send({
-                        success: false,
-                        status: 500,
-                        data: null,
-                        signed_in: false,
-                        version: 1,
-                        error: { 
-                            code: 500, 
-                            message: "An Internal Error Has Occurred!",
-                            target: "approx what the error came from", 
-                        }
-                    });
+                console.log(err);
+                res.send({
+                    success: false,
+                    status: 500,
+                    data: null,
+                    signed_in: false,
+                    version: 1,
+                    error: { 
+                        code: 500, 
+                        message: "An Internal Error Has Occurred!",
+                        target: "approx what the error came from", 
+                    }
+                });
             }
         }
     }catch(err){
        next(err);
     }
-}
+};
 
 const getUserProfile = async (req, res, next) => {
     try{
@@ -160,7 +167,7 @@ const getUserProfile = async (req, res, next) => {
             status: 200,
             signed_in: false,
             version: 1,
-            data: [],
+            data: {},
             error: null
         }
 
@@ -169,7 +176,7 @@ const getUserProfile = async (req, res, next) => {
             response.status = 400;
             response.error = {
                 code: 400,
-                message: "Missing version query parameter!",
+                message: "Missing version query parameter",
                 target: "client side api calling issue"
             }
             res.send(response);
@@ -180,29 +187,30 @@ const getUserProfile = async (req, res, next) => {
                 response.signed_in = false,
                 response.error = {
                     code: 400,
-                    message: "Not a valid profile id!",
+                    message: "Not a valid profile id",
                     target: "client side api calling issue"
                 }
                 res.send(response);
             }else{
                 const clientVersion = parseInt(req.query.version);
                 try {
-                    const data = await getUserProfileService(id);
+                    // const data = await getUserProfileService(id);
+                    const user = await findUserById(id); //sending 'req.user.email' instead of direct 'id/email' of params because the sub is decrypted from jwt of the middleware, more secure
     
-                    if (!data) {
+                    if (!user) {
                         response.success = false;
                         response.status = 404;
                         response.error = {
                             code: 404,
-                            message: "Tournament details not found!",
+                            message: "Profile details not found",
                             target: "database"
                         }
                     }else{
                         try {
-                            if (data.version > clientVersion) {
-                                const cleanedProfile = _.omit(data, ['password']);
+                            if (user.version > clientVersion) {
+                                const cleanedProfile = _.omit(user.toObject(), ['password']);
                                 response.data = cleanedProfile;
-                                response.version = data.version;
+                                response.version = user.version;
                             }else {
                                 response.status = 304;
                                 response.version = clientVersion;
@@ -219,7 +227,7 @@ const getUserProfile = async (req, res, next) => {
                             response.version = clientVersion;
                             response.error = {
                                 code: 500,
-                                message: "An Internal Error Has Occurred!",
+                                message: "An Internal Error Has Occurred",
                                 target: "approx what the error came from"
                             }
                         }
@@ -234,7 +242,7 @@ const getUserProfile = async (req, res, next) => {
                         version: 1,
                         error: { 
                             code: 500, 
-                            message: "An Internal Error Has Occurred!",
+                            message: "An Internal Error Has Occurred",
                             target: "approx what the error came from", 
                         }
                     });
@@ -246,10 +254,142 @@ const getUserProfile = async (req, res, next) => {
     }catch(err){
        next(err);
     }
-}
+};
+
+const updateProfileById = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null
+    }
+
+    try {
+        const { id } = req.params;
+        if(!ObjectId.isValid(id)){
+            response.status = 400;
+            response.signed_in = false,
+            response.error = {
+                code: 400,
+                message: "Not a valid profile id",
+                target: "client side api calling issue"
+            }
+            res.send(response);
+        }else{
+            try {
+                const result = await updateProfileByIdService(id, req.body);
+    
+                if (!result) {
+                    response.success = false;
+                    response.status = 400;
+                    response.message = "Data is not updated";
+                    response.error = {
+                        code: 400,
+                        message: error.message,
+                        target: "client side api calling issue"
+                    }
+        
+                    return res.send(response);
+                }
+
+                response.version = result.version;
+                response.message = "Profile updated successfully";
+
+                res.send(response);
+            } catch (error) {
+                console.log(err);
+                res.send({
+                    success: false,
+                    status: 500,
+                    data: null,
+                    signed_in: false,
+                    version: 1,
+                    error: { 
+                        code: 500, 
+                        message: "An Internal Error Has Occurred",
+                        target: "approx what the error came from", 
+                    }
+                });
+            }
+        }
+    } catch (error) {
+        response.success = false;
+        response.status = 400;
+        response.message = "Data is not updated";
+        response.error = {
+            code: 400,
+            message: error.message,
+            target: "client side api calling issue"
+        }
+
+        res.send(response);
+    }
+};
+
+const deleteProfileById = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null
+    }
+    try {
+        const { id } = req.params;
+        if(!ObjectId.isValid(id)){
+            response.status = 400;
+            response.signed_in = false,
+            response.error = {
+                code: 400,
+                message: "Not a valid profile id",
+                target: "client side api calling issue"
+            }
+            res.send(response);
+        }else{
+            try {
+                const result = await deleteProfileByIdService(id);
+            
+                if (!result) {
+                    response.success = false;
+                    response.status = 400;
+                    response.message = "Data is not deleted";
+                    response.error = {
+                        code: 400,
+                        message: error.message,
+                        target: "client side api calling issue"
+                    }
+
+                    return res.send(response);
+                }
+        
+                response.version = result.version;
+                response.message = "Profile deleted successfully";
+                res.send(response);
+            } catch (error) {
+                
+            }
+        }
+    } catch (error) {
+        response.success = false;
+        response.status = 400;
+        response.message = "Data is not deleted";
+        response.error = {
+            code: 400,
+            message: error.message,
+            target: "client side api calling issue"
+        }
+
+        res.send(response);
+    }
+};
 
 module.exports = {
     userSignup,
     userLogin,
     getUserProfile,
+    updateProfileById,
+    deleteProfileById,
 }

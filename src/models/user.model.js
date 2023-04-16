@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const validator = require("validator");
 const bcrypt = require("bcryptjs");
+const Version = require('./version.model');
 
 const GameSchema = new mongoose.Schema({
     played: {
@@ -72,6 +73,11 @@ const userSchema = new mongoose.Schema({
     emailVerified: {
         type: Boolean,
         default: false
+    },
+    status: {
+        type: String,
+        enum: ["active", "inactive", "blocked"],
+        default: "active",
     },
     balance: {
         type: Number,
@@ -276,18 +282,46 @@ const userSchema = new mongoose.Schema({
     }
 });
 
-userSchema.pre("save", function (next) {
-    // if (!this.isModified("password")) {
-    //   //  only run if password is modified, otherwise it will change every time we save the user!
-    //   return next();
-    // }
+userSchema.pre("save", async function (next) {
+    const versionTable = await Version.findOne({ table: 'users' });
+
+    if (versionTable) {
+        versionTable.version = versionTable.version + 1;
+        await versionTable.save();
+    } else {
+        await Version.create({ table: 'users', version: 1 });
+    }
+
+    //encrypting the password to hash
     const password = this.password;
     const hashedPassword = bcrypt.hashSync(password);
     this.password = hashedPassword;
-    // this.confirmPassword = undefined;
-  
+
     next();
 });
+
+userSchema.pre('findOneAndUpdate', async function() {
+  const versionTable = await Version.findOne({ table: 'users' });
+  if (versionTable) {
+    const updatedVersion = versionTable.version + 1;
+    await versionTable.updateOne({ version: updatedVersion });
+  } else {
+    await Version.create({ table: 'users', version: 1 });
+  }
+});
+
+userSchema.pre('findOneAndDelete', async function() {
+    const versionTable = await Version.findOne({ table: 'users' });
+    if (versionTable) {
+      versionTable.version = versionTable.version + 1;
+      await versionTable.save();
+    }
+});
+
+userSchema.methods.comparePassword = function (password, hash) {
+    const isPasswordValid = bcrypt.compareSync(password, hash);
+    return isPasswordValid;
+};
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;
