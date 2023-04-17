@@ -1,4 +1,3 @@
-const { ObjectId } = require("mongodb");
 const _ = require('lodash');
 const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService } = require("../services/account.service");
 const { generateToken, generateRefreshToken } = require("../utils/token");
@@ -171,86 +170,63 @@ const getUserProfile = async (req, res, next) => {
             error: null
         }
 
-        if(!req.query.version){
-            response.success = false;
-            response.status = 400;
-            response.error = {
-                code: 400,
-                message: "Missing version query parameter",
-                target: "client side api calling issue"
-            }
-            res.send(response);
-        }else{
-            const id = req.params.id;
-            if(!ObjectId.isValid(id)){
-                response.status = 400;
-                response.signed_in = false,
+        const clientVersion = parseInt(req.query.version);
+        try {
+            // const data = await getUserProfileService(id);
+            const user = await findUserById(req.params.id);
+
+            if (!user) {
+                response.success = false;
+                response.status = 404;
                 response.error = {
-                    code: 400,
-                    message: "Not a valid profile id",
-                    target: "client side api calling issue"
+                    code: 404,
+                    message: "Profile details not found",
+                    target: "database"
                 }
-                res.send(response);
             }else{
-                const clientVersion = parseInt(req.query.version);
                 try {
-                    // const data = await getUserProfileService(id);
-                    const user = await findUserById(id); //sending 'req.user.email' instead of direct 'id/email' of params because the sub is decrypted from jwt of the middleware, more secure
-    
-                    if (!user) {
-                        response.success = false;
-                        response.status = 404;
+                    if (user.version > clientVersion) {
+                        const cleanedProfile = _.omit(user.toObject(), ['password']);
+                        response.data = cleanedProfile;
+                        response.version = user.version;
+                    }else {
+                        response.status = 304;
+                        response.version = clientVersion;
                         response.error = {
-                            code: 404,
-                            message: "Profile details not found",
-                            target: "database"
-                        }
-                    }else{
-                        try {
-                            if (user.version > clientVersion) {
-                                const cleanedProfile = _.omit(user.toObject(), ['password']);
-                                response.data = cleanedProfile;
-                                response.version = user.version;
-                            }else {
-                                response.status = 304;
-                                response.version = clientVersion;
-                                response.error = {
-                                    code: 304,
-                                    message: "Client have the latest version",
-                                    target: "fetch data from the redux store"
-                                }
-                            }
-                        } catch (err) {
-                            response.data = null;
-                            response.success = false;
-                            response.status = 500;
-                            response.version = clientVersion;
-                            response.error = {
-                                code: 500,
-                                message: "An Internal Error Has Occurred",
-                                target: "approx what the error came from"
-                            }
+                            code: 304,
+                            message: "Client have the latest version",
+                            target: "fetch data from the redux store"
                         }
                     }
                 } catch (err) {
-                    console.log(err);
-                    res.send({
-                        success: false,
-                        status: 500,
-                        data: null,
-                        signed_in: false,
-                        version: 1,
-                        error: { 
-                            code: 500, 
-                            message: "An Internal Error Has Occurred",
-                            target: "approx what the error came from", 
-                        }
-                    });
+                    response.data = null;
+                    response.success = false;
+                    response.status = 500;
+                    response.version = clientVersion;
+                    response.error = {
+                        code: 500,
+                        message: "An Internal Error Has Occurred",
+                        target: "approx what the error came from"
+                    }
                 }
-        
-                res.send(response);
             }
+        } catch (err) {
+            console.log(err);
+            res.send({
+                success: false,
+                status: 500,
+                data: null,
+                signed_in: false,
+                version: 1,
+                error: { 
+                    code: 500, 
+                    message: "An Internal Error Has Occurred",
+                    target: "approx what the error came from", 
+                }
+            });
         }
+
+        res.send(response);
     }catch(err){
        next(err);
     }
@@ -267,64 +243,39 @@ const updateProfileById = async (req, res, next) => {
     }
 
     try {
-        const { id } = req.params;
-        if(!ObjectId.isValid(id)){
+        const result = await updateProfileByIdService(req.params.id, req.body);
+
+        if (!result) {
+            response.success = false;
             response.status = 400;
-            response.signed_in = false,
+            response.message = "Data is not updated";
             response.error = {
                 code: 400,
-                message: "Not a valid profile id",
+                message: error.message,
                 target: "client side api calling issue"
             }
-            res.send(response);
-        }else{
-            try {
-                const result = await updateProfileByIdService(id, req.body);
-    
-                if (!result) {
-                    response.success = false;
-                    response.status = 400;
-                    response.message = "Data is not updated";
-                    response.error = {
-                        code: 400,
-                        message: error.message,
-                        target: "client side api calling issue"
-                    }
-        
-                    return res.send(response);
-                }
 
-                response.version = result.version;
-                response.message = "Profile updated successfully";
+            return res.send(response);
+        }
 
-                res.send(response);
-            } catch (error) {
-                console.log(err);
-                res.send({
-                    success: false,
-                    status: 500,
-                    data: null,
-                    signed_in: false,
-                    version: 1,
-                    error: { 
-                        code: 500, 
-                        message: "An Internal Error Has Occurred",
-                        target: "approx what the error came from", 
-                    }
-                });
-            }
-        }
-    } catch (error) {
-        response.success = false;
-        response.status = 400;
-        response.message = "Data is not updated";
-        response.error = {
-            code: 400,
-            message: error.message,
-            target: "client side api calling issue"
-        }
+        response.version = result.version;
+        response.message = "Profile updated successfully";
 
         res.send(response);
+    } catch (error) {
+        console.log(err);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred",
+                target: "approx what the error came from", 
+            }
+        });
     }
 };
 
@@ -338,51 +289,35 @@ const deleteProfileById = async (req, res, next) => {
         error: null
     }
     try {
-        const { id } = req.params;
-        if(!ObjectId.isValid(id)){
+        const result = await deleteProfileByIdService(req.params.id);
+    
+        if (!result) {
+            response.success = false;
             response.status = 400;
-            response.signed_in = false,
+            response.message = "Data is not deleted";
             response.error = {
                 code: 400,
-                message: "Not a valid profile id",
+                message: error.message,
                 target: "client side api calling issue"
             }
-            res.send(response);
-        }else{
-            try {
-                const result = await deleteProfileByIdService(id);
-            
-                if (!result) {
-                    response.success = false;
-                    response.status = 400;
-                    response.message = "Data is not deleted";
-                    response.error = {
-                        code: 400,
-                        message: error.message,
-                        target: "client side api calling issue"
-                    }
 
-                    return res.send(response);
-                }
-        
-                response.version = result.version;
-                response.message = "Profile deleted successfully";
-                res.send(response);
-            } catch (error) {
-                
-            }
+            return res.send(response);
         }
+
+        response.version = result.version;
+        response.message = "Profile deleted successfully";
+        res.send(response);
     } catch (error) {
         response.success = false;
-        response.status = 400;
+        response.status = 500;
         response.message = "Data is not deleted";
         response.error = {
-            code: 400,
+            code: 500,
             message: error.message,
             target: "client side api calling issue"
         }
 
-        res.send(response);
+        res.status(500).send(response);
     }
 };
 

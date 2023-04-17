@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router()
 const accountControllers = require('../../controllers/account.controller');
-const verifyVersion = require("../../middlewares/verifyVersion");
+const authentication = require("../../middlewares/authentication");
+const authorization = require("../../middlewares/authorization");
+const validateVersion = require("../../middlewares/validateVersion");
+const validateParams = require("../../middlewares/validateParams");
 
 //write js documentation
 // base route: /api/v1/account
@@ -15,9 +18,9 @@ router
 
 router
 .route('/profile/:id')
-.get(verifyVersion, accountControllers.getUserProfile)
-.patch(verifyVersion, accountControllers.updateProfileById)
-.delete(verifyVersion, accountControllers.deleteProfileById)
+.get(authentication, authorization("user", "admin"), validateVersion, validateParams, accountControllers.getUserProfile)
+.patch(authentication, authorization("user", "admin"), validateParams, accountControllers.updateProfileById)
+.delete(authentication, authorization("admin"), validateParams, accountControllers.deleteProfileById)
 
 
 module.exports = router;
