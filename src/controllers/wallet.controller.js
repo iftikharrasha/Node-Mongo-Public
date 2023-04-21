@@ -11,76 +11,62 @@ const getTopups = async (req, res, next) => {
         data: [],
         error: null
     }
-    try{
-        if(!req.query.version){
-            response.success = false;
-            response.status = 400;
-            response.error = {
-                code: 400,
-                message: "Missing version query parameter!",
-                target: "client side api calling issue"
-            }
-            res.send(response);
-        }else{
-            const clientVersion = parseInt(req.query.version);
+    
+    const clientVersion = parseInt(req.query.version);
             
+    try {
+        const data = await getTopupsService();
+        const versionData = await getVersionTableService();
+
+        if (data.length > 0) {
             try {
-                const data = await getTopupsService();
-                const versionData = await getVersionTableService();
+                let serverVersion = 0;
+                const tableData = versionData.find( item => item.table === "topups");
+                if (tableData && tableData.version) {
+                    serverVersion = tableData.version;
+                }
 
-                if (data.length > 0) {
-                    try {
-                        let serverVersion = 0;
-                        const tableData = versionData.find( item => item.table === "topups");
-                        if (tableData && tableData.version) {
-                            serverVersion = tableData.version;
-                        }
-
-                        if (serverVersion > clientVersion) {
-                            response.data = data;
-                            response.version = serverVersion;
-                        }else {
-                            response.status = 304;
-                            response.version = serverVersion;
-                            response.error = {
-                                code: 304,
-                                message: "Client have the latest version",
-                                target: "fetch data from the redux store"
-                            }
-                        }
-                    } catch (err) {
-                        response.data = null;
-                        response.success = false;
-                        response.status = 500;
-                        response.version = serverVersion;
-                        response.error = {
-                            code: 500,
-                            message: "An Internal Error Has Occurred!",
-                            target: "approx what the error came from"
-                        }
+                if (serverVersion > clientVersion) {
+                    response.data = data;
+                    response.version = serverVersion;
+                }else {
+                    response.status = 304;
+                    response.version = serverVersion;
+                    response.error = {
+                        code: 304,
+                        message: "Client have the latest version",
+                        target: "fetch data from the redux store"
                     }
                 }
             } catch (err) {
-                console.log(err);
-                res.send({
-                    success: false,
-                    status: 500,
-                    data: null,
-                    signed_in: false,
-                    version: 1,
-                    error: { 
-                        code: 500, 
-                        message: "An Internal Error Has Occurred!",
-                        target: "approx what the error came from", 
-                    }
-                });
+                response.data = null;
+                response.success = false;
+                response.status = 500;
+                response.version = serverVersion;
+                response.error = {
+                    code: 500,
+                    message: "An Internal Error Has Occurred!",
+                    target: "approx what the error came from"
+                }
             }
-    
-            res.send(response);
         }
-    }catch(err){
-       next(err);
+    } catch (err) {
+        console.log(err);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred!",
+                target: "approx what the error came from", 
+            }
+        });
     }
+
+    res.send(response);
 }
 
 const getTopupById = async (req, res, next) => {
@@ -92,68 +78,42 @@ const getTopupById = async (req, res, next) => {
         error: null,
     }
     try {
-        if(!req.query.version){
+        const clientVersion = parseInt(req.query.version);
+        const data = await getTopupByIdService(req.params.id);
+
+        if(!data){
             response.success = false;
             response.status = 400;
             response.error = {
                 code: 400,
-                message: "Missing version query parameter!",
-                target: "client side api calling issue"
+                message: "Topup Details Not found!",
+                target: "database"
             }
-            res.send(response);
         }else{
-            const id = req.params.id;
-            if(!ObjectId.isValid(id)){
-                response.status = 400;
-                response.signed_in = false,
+            if (data.version > clientVersion) {
+                response.version = data.version;
+                response.data = data;
+            }else {
+                response.status = 304;
+                response.version = clientVersion;
                 response.error = {
-                    code: 400,
-                    message: "Not a valid tournament id!",
-                    target: "client side api calling issue"
-                }
-            }else{
-                try {
-                    const clientVersion = parseInt(req.query.version);
-                    const data = await getTopupByIdService(id);
-        
-                    if(!data){
-                        response.success = false;
-                        response.status = 400;
-                        response.error = {
-                            code: 400,
-                            message: "Topup Details Not found!",
-                            target: "database"
-                        }
-                    }else{
-                        if (data.version > clientVersion) {
-                            response.version = data.version;
-                            response.data = data;
-                        }else {
-                            response.status = 304;
-                            response.version = clientVersion;
-                            response.error = {
-                                code: 304,
-                                message: "Client have the latest version",
-                                target: "fetch data from the redux store"
-                            }
-                        }
-                    }
-            
-                } catch (error) {
-                    response.success = false;
-                    response.status = 500;
-                    response.error = { 
-                        code: 500, 
-                        message: "An Internal Error Has Occurred!",
-                        target: "approx what the error came from", 
-                    }
+                    code: 304,
+                    message: "Client have the latest version",
+                    target: "fetch data from the redux store"
                 }
             }
-            res.send(response);
         }
+
     } catch (error) {
-        next(err);
+        response.success = false;
+        response.status = 500;
+        response.error = { 
+            code: 500, 
+            message: "An Internal Error Has Occurred!",
+            target: "approx what the error came from", 
+        }
     }
+    res.send(response);
 };
 
 const createTopup = async (req, res, next) => {

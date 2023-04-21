@@ -19,5 +19,4 @@ router
 .patch(authentication, authorization("admin"), validateParams, walletControllers.updateTopupById)
 .delete(authentication, authorization("admin"), validateParams, walletControllers.deleteTopupById)
 
-
 module.exports = router;

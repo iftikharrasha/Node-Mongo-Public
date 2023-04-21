@@ -3,6 +3,29 @@ const validator = require("validator");
 const bcrypt = require("bcryptjs");
 const Version = require('./version.model');
 
+const addressSchema = new mongoose.Schema({
+    street: {
+      type: String,
+      default: null
+    },
+    city: {
+      type: String,
+      default: null
+    },
+    state: {
+      type: String,
+      default: null
+    },
+    country: {
+      type: String,
+      default: null
+    },
+    zipCode: {
+      type: String,
+      default: null
+    }
+},{ _id: false });
+
 const GameSchema = new mongoose.Schema({
     played: {
         type: Number,
@@ -16,8 +39,7 @@ const GameSchema = new mongoose.Schema({
         type: Number,
         default: 0
     }
-},
-{ _id: false });
+},{ _id: false });
 
 const socialSchema = new mongoose.Schema({
     userId: {
@@ -28,8 +50,7 @@ const socialSchema = new mongoose.Schema({
         type: String,
         default: null
     },
-},
-{ _id: false });
+},{ _id: false });
 
 const userSchema = new mongoose.Schema({
     firstName: {
@@ -48,7 +69,10 @@ const userSchema = new mongoose.Schema({
     },
     gender: {
         type: String,
-        enum: ["male", "female", "other"]
+        enum: {
+            values: ["male", "female", "other"],
+            message: "{VALUE} is not a valid gender!",
+        }
     },
     userName: {
         type: String,
@@ -76,7 +100,10 @@ const userSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["active", "inactive", "blocked"],
+        enum: {
+            values: ["active", "inactive", "blocked"],
+            message: "{VALUE} is not a valid status!",
+        },
         default: "active",
     },
     balance: {
@@ -107,10 +134,6 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
-    joiningDate: { 
-        type: Date, 
-        default: Date.now 
-    },
     version: { 
         type: Number, 
         default: 1 
@@ -132,30 +155,21 @@ const userSchema = new mongoose.Schema({
     },
     permissions: {
         type: [String],
-        enum: ['user', 'master', 'admin'],
+        enum: {
+            values: ['user', 'master', 'admin'],
+            message: "{VALUE} is not a valid permission!",
+        },
         default: ['user']
     },
     address: {
-      street: {
-        type: String,
-        default: null
-      },
-      city: {
-        type: String,
-        default: null
-      },
-      state: {
-        type: String,
-        default: null
-      },
-      country: {
-        type: String,
-        default: null
-      },
-      zipCode: {
-        type: String,
-        default: null
-      }
+        type: addressSchema,
+        default: {
+            street: null,
+            city: null,
+            state: null,
+            country: null,
+            zipCode: null
+        }
     },
     requests: {
         followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
@@ -280,7 +294,7 @@ const userSchema = new mongoose.Schema({
             default: null
         },
     }
-});
+}, { timestamps: true });
 
 userSchema.pre("save", async function (next) {
     const versionTable = await Version.findOne({ table: 'users' });
