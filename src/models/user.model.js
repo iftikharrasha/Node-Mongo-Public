@@ -141,7 +141,6 @@ const userSchema = new mongoose.Schema({
     password: {
       type: String,
       required: [true, "Password is required"],
-      select: false, // This line ensures that the password field is never returned in any API response
       validate: {
         validator: (value) =>
           validator.isStrongPassword(value, {
@@ -153,6 +152,7 @@ const userSchema = new mongoose.Schema({
           }),
         message: "Password {VALUE} is not strong enough.",
       },
+      // select: false, // This line ensures that the password field is never returned in any API response
     },
     permissions: {
         type: [String],

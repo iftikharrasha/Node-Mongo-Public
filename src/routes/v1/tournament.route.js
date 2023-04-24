@@ -24,6 +24,10 @@ router
 
 router
 .route('/leaderboards/:id')
-.get(tournamentControllers.getLeaderboardDetails)
+.get(validateVersion, validateParams, tournamentControllers.getLeaderboards)
+
+router
+.route('/registration/:id')
+.post(authentication, validateParams, tournamentControllers.tournamentRegistration)
 
 module.exports = router;

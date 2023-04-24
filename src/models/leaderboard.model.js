@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
-const { Schema } = mongoose;
 
-const leaderboardSchema = new Schema({
+const leaderboardSchema = new mongoose.Schema({
   tId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Tournament',
@@ -15,10 +14,7 @@ const leaderboardSchema = new Schema({
     type: Number, 
     default: 1 
   },
-  leaderboards: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User"
-  }],
+  leaderboards: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
 //   leaderboard: [
 //     {
 //       id: {

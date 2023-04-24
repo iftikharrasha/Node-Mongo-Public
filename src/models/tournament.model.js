@@ -343,7 +343,7 @@ const tournamentSchema = new mongoose.Schema({
     // avgRating: { type: Number },
     // totalRatings: { type: Number },
     // followers: { type: Object }
-    leaderboards: [{ type: mongoose.Schema.Types.ObjectId, ref: "Leaderboard" }],
+    leaderboards: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     completionPercentage: {
       type: Number,
       default: 0

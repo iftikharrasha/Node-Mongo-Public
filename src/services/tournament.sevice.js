@@ -1,45 +1,26 @@
-const { getDb } = require("../utils/dbConnect")
-// const { ObjectId } = require("mongodb");
 const Tournament = require('../models/tournament.model')
+const Leaderboard = require('../models/leaderboard.model')
 
-const excludedFields = { 
-    firstName: 0,
-    lastName: 0,
-    status: 0,
-    balance: 0,
-    password: 0,
-    dateofBirth: 0,
-    version: 0,
-    permissions: 0,
-    address: 0,
-    teams: 0,
-    requests: 0,
-    stats: 0,
-    socials: 0,
-    updatedAt: 0,
-    __v: 0
-};
+const excludedMasterFields = '-firstName -lastName -status -balance -password -dateofBirth -version -permissions -address -teams -requests -stats -socials -updatedAt -__v';
+const excludedUserFields = '-firstName -lastName -status -balance -password -dateofBirth -version -permissions -address -teams -requests -stats -socials -updatedAt -__v';
 
 const getAllTournamentsService = async () => {
-    // const db = getDb();
-    // const tournaments = await db.collection("tournaments").find({}).toArray();
     const tournaments = await Tournament.find({}).populate('masterProfile', excludedFields);
     return tournaments;
 }
 
 const getTournamentDetailsService = async (id) => {
-    // const db = getDb();
-    // const query = { _id: ObjectId(id) };
-    // const tournament = await db.collection("tournaments").findOne(query);
-    const tournament = await Tournament.findOne({ _id: id }).populate('masterProfile', excludedFields);
+    const tournament = await Tournament.findOne({ _id: id })
+                                       .populate('masterProfile', excludedMasterFields)
+                                    //    .populate('leaderboards', excludedUserFields); 
+                                    //uncomment this if we want to inject leaderboards inside tournaments
     return tournament;
 }
 
-const getLeaderboardDetailsService = async (id) => {
-    const db = getDb();
-    const query = { tId: id };
-    const tournament = await db.collection("leaderboards").findOne(query);
-    return tournament;
+const getLeaderboardsService = async (id) => {
+    const leaderboard = await Leaderboard.findOne({ tId: id })
+                                         .populate('leaderboards', excludedUserFields);
+    return leaderboard;
 }
 
 const createTournamentService = async (data) => {
@@ -68,11 +49,34 @@ const deleteTournamentByIdService = async (id) => {
     return result;
 };
 
+const tournamentRegistrationService = async (tId, uId) => {
+    //creating user id inside tournament leaderboard
+    const tournament = await Tournament.findByIdAndUpdate(
+        { _id: tId },
+        { $push: { leaderboards: { $each: [uId], $position: 0 } } },
+        { new: true }
+    );
+
+    //pushing user id inside separate leaderboard
+    const leaderboard = await Leaderboard.findOne({ tId: tId });
+    const result = await Leaderboard.findByIdAndUpdate(
+        { _id: leaderboard._id },
+        { $push: { leaderboards: { $each: [uId], $position: 0 } } },
+        { new: true }
+    );
+    return result;
+}
+
 module.exports = {
     createTournamentService,
     getAllTournamentsService,
     getTournamentDetailsService,
-    getLeaderboardDetailsService,
     updateTournamentByIdService,
-    deleteTournamentByIdService
+    deleteTournamentByIdService,
+    getLeaderboardsService,
+    tournamentRegistrationService,
 }
+
+//check if user already registered?
+//leaderboard version table
+//what if user changed his profile pic, will version table be changed?
