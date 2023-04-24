@@ -1,11 +1,29 @@
 const { getDb } = require("../utils/dbConnect")
-const { ObjectId } = require("mongodb");
+// const { ObjectId } = require("mongodb");
 const Tournament = require('../models/tournament.model')
+
+const excludedFields = { 
+    firstName: 0,
+    lastName: 0,
+    status: 0,
+    balance: 0,
+    password: 0,
+    dateofBirth: 0,
+    version: 0,
+    permissions: 0,
+    address: 0,
+    teams: 0,
+    requests: 0,
+    stats: 0,
+    socials: 0,
+    updatedAt: 0,
+    __v: 0
+};
 
 const getAllTournamentsService = async () => {
     // const db = getDb();
     // const tournaments = await db.collection("tournaments").find({}).toArray();
-    const tournaments = await Tournament.find({});
+    const tournaments = await Tournament.find({}).populate('masterProfile', excludedFields);
     return tournaments;
 }
 
@@ -13,7 +31,7 @@ const getTournamentDetailsService = async (id) => {
     // const db = getDb();
     // const query = { _id: ObjectId(id) };
     // const tournament = await db.collection("tournaments").findOne(query);
-    const tournament = await Tournament.findOne({ _id: id });
+    const tournament = await Tournament.findOne({ _id: id }).populate('masterProfile', excludedFields);
     return tournament;
 }
 

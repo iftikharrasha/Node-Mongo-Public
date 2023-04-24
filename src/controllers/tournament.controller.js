@@ -175,7 +175,7 @@ const updateTournamentDetails = async (req, res, next) => {
         }
         response.version = result.version;
         response.data = result;
-        response.message = "Giftcard updated successfully";
+        response.message = "Tournament updated successfully";
         res.send(response);
     } catch (error) {
         response.success = false;
