@@ -1,8 +1,10 @@
 const mongoose = require('mongoose');
+const { ObjectId } = mongoose.Schema.Types;
+const Version = require('./version.model');
 
 const leaderboardSchema = new mongoose.Schema({
   tId: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: ObjectId,
     ref: 'Tournament',
     required: true
   },
@@ -14,48 +16,31 @@ const leaderboardSchema = new mongoose.Schema({
     type: Number, 
     default: 1 
   },
-  leaderboards: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-//   leaderboard: [
-//     {
-//       id: {
-//         type: mongoose.Schema.Types.ObjectId,
-//         ref: 'User',
-//         required: true
-//       },
-//       userName: {
-//         type: String,
-//         required: true
-//       },
-//       country: {
-//         type: String,
-//         required: true
-//       },
-//       photo: {
-//         type: String,
-//         required: true
-//       },
-//       gender: {
-//         type: String,
-//         required: true
-//       },
-//       emailVerified: {
-//         type: Boolean,
-//         required: true
-//       },
-//       stats: {
-//         type: Object,
-//         required: true,
-//         default: {
-//           totalGamePlayed: 0,
-//           totalWins: 0,
-//           totalXp: 0,
-//           level: 0,
-//           levelTitle: 'Beginner',
-//           noOfFollowers: 0
-//         }
-//       }
-//     }
-//   ]
+  leaderboards: [{ type: ObjectId, ref: "User" }],
+});
+
+//everytime a tournament added should we update the version table of bulk leaderboards?
+leaderboardSchema.pre("save", async function (next) {
+  const versionTable = await Version.findOne({ table: 'leaderboards' });
+
+  if (versionTable) {
+      versionTable.version = versionTable.version + 1;
+      await versionTable.save();
+  } else {
+      await Version.create({ table: 'leaderboards', version: 1 });
+  }
+  
+  next();
+});
+
+leaderboardSchema.pre('findOneAndUpdate', async function (next) {
+  const versionTable = await Version.findOne({ table: 'leaderboards' });
+  if (versionTable) {
+    versionTable.version = versionTable.version + 1;
+    await versionTable.save();
+  }
+
+  next();
 });
 
 const Leaderboard = mongoose.model('Leaderboard', leaderboardSchema);

@@ -1,6 +1,4 @@
-const { ObjectId } = require("mongodb");
-const { getDb } = require("../utils/dbConnect");
-const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, getLeaderboardsService, tournamentRegistrationService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, addUserToLeaderboardService } = require("../services/tournament.sevice.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
 
 const getAllTournaments = async (req, res, next) => {
@@ -160,6 +158,7 @@ const updateTournamentDetails = async (req, res, next) => {
         const { id } = req.params;
     
         const result = await updateTournamentByIdService(id, req.body);
+        console.log(result)
     
         if (!result) {
             response.success = false;
@@ -204,6 +203,8 @@ const deleteTournamentDetails = async (req, res, next) => {
         const { id } = req.params;
     
         const result = await deleteTournamentByIdService(id);
+        const result2 = await deleteTournamentLeaderboardByIdService(id);
+        // console.log(result2.deletedCount)
     
         if (!result) {
             response.success = false;
@@ -219,7 +220,6 @@ const deleteTournamentDetails = async (req, res, next) => {
         }
   
         response.version = result.version;
-        response.data = result;
         response.message = "Tournament deleted successfully";
         res.send(response);
     } catch (error) {
@@ -297,10 +297,21 @@ const tournamentRegistration = async (req, res, next) => {
         const uId = req.user.sub;
 
         // save or create
-        const result = await tournamentRegistrationService(tId, uId);
+        const result = await addUserToLeaderboardService(tId, uId);
 
-        response.data = result;
-        response.message = "User registered successfully";
+        if(result){
+            response.data = result;
+            response.message = "User registered successfully";
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.message = "User is already registered";
+            response.error = {
+                code: 400,
+                message: "User is already registered",
+                target: "client side api calling issue"
+            }
+        }
 
         res.send(response);
     } catch (error) {

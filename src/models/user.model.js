@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { ObjectId } = mongoose.Schema.Types;
 const validator = require("validator");
 const bcrypt = require("bcryptjs");
 const Version = require('./version.model');
@@ -173,10 +174,10 @@ const userSchema = new mongoose.Schema({
         }
     },
     requests: {
-        followers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-        followings: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }]
+        followers: [{ type: ObjectId, ref: 'User' }],
+        followings: [{ type: ObjectId, ref: 'User' }]
     },
-    teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],
+    teams: [{ type: ObjectId, ref: 'Team' }],
     stats: {
         totalTournamentPlayed: {
             type: Number,

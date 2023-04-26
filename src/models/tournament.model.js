@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { ObjectId } = mongoose.Schema.Types;
 const validator = require("validator");
 const Version = require('./version.model');
 const Leaderboard = require('./leaderboard.model');
@@ -333,17 +334,10 @@ const tournamentSchema = new mongoose.Schema({
         }
     },
     masterProfile:{ 
-        type: mongoose.Schema.Types.ObjectId, 
+        type: ObjectId, 
         ref: "User" 
     },
-    // userName: { type: String },
-    // emailVerified: { type: Boolean },
-    // countryCode: { type: String },
-    // photo: { type: String },
-    // avgRating: { type: Number },
-    // totalRatings: { type: Number },
-    // followers: { type: Object }
-    leaderboards: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    // leaderboards: [{ type: ObjectId, ref: "User" }],
     completionPercentage: {
       type: Number,
       default: 0
@@ -378,7 +372,7 @@ tournamentSchema.post('save', async function(doc, next) {
     }
 });
 
-tournamentSchema.pre('findOneAndUpdate', async function() {
+tournamentSchema.pre('findOneAndUpdate', async function (next) {
     const requiredFields = ['tournamentName', 'tournamentThumbnail', 'category', 'settings.joiningFee', 'dates.registrationStart', 'dates.registrationEnd'];
     const updatedFields = this.getUpdate(); //returns an object that contains the changes made to the tournament document after update
     const tournament = await this.model.findOne(this.getFilter());
@@ -404,14 +398,17 @@ tournamentSchema.pre('findOneAndUpdate', async function() {
     } else {
       await Version.create({ table: 'tournaments', version: 1 });
     }
+
+    next();
 });
 
-tournamentSchema.pre('findOneAndDelete', async function() {
+tournamentSchema.pre('findOneAndDelete', async function (next) {
     const versionTable = await Version.findOne({ table: 'tournaments' });
     if (versionTable) {
       versionTable.version = versionTable.version + 1;
       await versionTable.save();
     }
+    next();
 });
 
 tournamentSchema.methods.calculateCompletionPercentage = function() {
