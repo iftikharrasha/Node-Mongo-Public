@@ -1,4 +1,4 @@
-const { getTopupsService, getTopupByIdService, createTopupService, updateTopupByIdService, deleteTopupByIdService } = require("../services/wallet.service");
+const { getTopupsService, getTopupByIdService, createTopupService, updateTopupByIdService, deleteTopupByIdService, getMyTransactionsByIdService } = require("../services/wallet.service");
 const { getVersionTableService } = require("../services/versionTable.service");
 const { ObjectId } = require("mongodb");
 
@@ -237,10 +237,58 @@ const deleteTopupById = async (req, res, next) => {
     }
 };
 
+const getMyTransactionsById = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        version: 1,
+        data: {},
+        error: null,
+    }
+    try {
+        const clientVersion = parseInt(req.query.version);
+        const data = await getMyTransactionsByIdService(req.params.id);
+
+        if(!data){
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "No Transactions found!",
+                target: "database"
+            }
+        }else{
+            if (data.version > clientVersion) {
+                response.version = data.version;
+                response.data = data;
+            }else {
+                response.status = 304;
+                response.version = clientVersion;
+                response.error = {
+                    code: 304,
+                    message: "Client have the latest version",
+                    target: "fetch data from the redux store"
+                }
+            }
+        }
+
+    } catch (error) {
+        response.success = false;
+        response.status = 500;
+        response.error = { 
+            code: 500, 
+            message: "An Internal Error Has Occurred!",
+            target: "approx what the error came from", 
+        }
+    }
+    res.send(response);
+};
+
 module.exports = {
     getTopups,
     getTopupById,
     createTopup,
     updateTopupById,
-    deleteTopupById
+    deleteTopupById,
+    getMyTransactionsById
 }

@@ -1,4 +1,5 @@
 const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, addUserToLeaderboardService } = require("../services/tournament.sevice.js");
+const { addToPurchaseService } = require("../services/wallet.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
 
 const getAllTournaments = async (req, res, next) => {
@@ -295,8 +296,11 @@ const tournamentRegistration = async (req, res, next) => {
     try {
         const tId = req.params.id;
         const uId = req.user.sub;
+        const data = req.body;
+        console.log(data)
 
         // save or create
+        const purchase = await addToPurchaseService(data);
         const result = await addUserToLeaderboardService(tId, uId);
 
         if(result){

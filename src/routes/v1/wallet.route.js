@@ -19,4 +19,8 @@ router
 .patch(authentication, authorization("admin"), validateParams, walletControllers.updateTopupById)
 .delete(authentication, authorization("admin"), validateParams, walletControllers.deleteTopupById)
 
+router
+.route("/transactions/:id")
+.get(authentication, authorization("user", "admin"), validateVersion, validateParams, walletControllers.getMyTransactionsById)
+
 module.exports = router;

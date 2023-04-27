@@ -3,6 +3,7 @@ const { ObjectId } = mongoose.Schema.Types;
 const validator = require("validator");
 const bcrypt = require("bcryptjs");
 const Version = require('./version.model');
+const Transaction = require('./transaction.model');
 
 const addressSchema = new mongoose.Schema({
     street: {
@@ -331,6 +332,19 @@ userSchema.pre('findOneAndDelete', async function() {
     if (versionTable) {
       versionTable.version = versionTable.version + 1;
       await versionTable.save();
+    }
+});
+
+userSchema.post('save', async function(doc, next) {
+    try {
+        const transaction = new Transaction({ 
+            uId: doc._id, 
+            uName: doc.userName 
+        });
+        await transaction.save();
+        next();
+    } catch (error) {
+        next(error);
     }
 });
 
