@@ -2,7 +2,7 @@ const Topup = require('../models/topup.model')
 const Purchase = require('../models/purchase.model')
 const Transaction = require('../models/transaction.model')
 
-// const excludedMasterFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -requests -stats -socials -updatedAt -__v';
+const excludedPurchaseFields = '-country -route -tId -giftId -teamId -updatedAt -__v';
 
 const createTopupService = async (data) => {
     const topup = await Topup.create(data);
@@ -49,30 +49,34 @@ const addToPurchaseService = async (data) => {
 
 const getMyTransactionsByIdService = async (id) => {
     const transaction = await Transaction.findOne({ uId: id })
-                                        // .populate({
-                                        //     path: 'transactions',
-                                        //     select: excludedUserFields,
-                                        //     match: { status: { $ne: 'blocked' } } //we get users who are not blocked
-                                        // });
+                                        .populate({
+                                            path: 'transactions',
+                                            select: excludedPurchaseFields,
+                                            // match: { status: { $ne: 'blocked' } } //we get purchases which are not blocked
+                                        });
     return transaction;
 }
 
-// const addPurchaseToTransactions = async (uId, pId) => {
-//     //pushing user id inside separate leaderboard
-//     const currentTransaction = await Transaction.findOne({ uId: uId });
+const addPurchaseToTransactionsService = async (uId, pId) => {
+    //pushing user id inside separate leaderboard
+    const currentTransaction = await Transaction.findOne({ uId: uId });
 
-//     if (currentTransaction.transactions.indexOf(pId) !== -1) {
-//         return false
-//     } else {
-//         const result = await Transaction.findOneAndUpdate(
-//             { _id: currentTransaction._id },
-//             { $push: { transactions: { $each: [pId], $position: 0 } }, $inc: { version: 1 } },
-//             { new: true }
-//         );
-        
-//         return result;
-//     }
-// };
+    if(currentTransaction){
+        if (currentTransaction.transactions.indexOf(pId) !== -1) {
+            return false
+        } else {
+            const result = await Transaction.findOneAndUpdate(
+                { _id: currentTransaction._id },
+                { $push: { transactions: { $each: [pId], $position: 0 } }, $inc: { version: 1 } },
+                { new: true }
+            );
+            
+            return result;
+        }
+    }else{
+        return false
+    }
+};
 
 module.exports = {
     getTopupsService,
@@ -81,5 +85,6 @@ module.exports = {
     updateTopupByIdService,
     deleteTopupByIdService,
     addToPurchaseService,
+    addPurchaseToTransactionsService,
     getMyTransactionsByIdService
 }

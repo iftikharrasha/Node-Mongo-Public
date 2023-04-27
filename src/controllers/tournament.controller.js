@@ -1,5 +1,5 @@
 const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, addUserToLeaderboardService } = require("../services/tournament.sevice.js");
-const { addToPurchaseService } = require("../services/wallet.service.js");
+const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
 
 const getAllTournaments = async (req, res, next) => {
@@ -297,22 +297,34 @@ const tournamentRegistration = async (req, res, next) => {
         const tId = req.params.id;
         const uId = req.user.sub;
         const data = req.body;
-        console.log(data)
 
         // save or create
-        const purchase = await addToPurchaseService(data);
-        const result = await addUserToLeaderboardService(tId, uId);
+        const purchase = await addToPurchaseService(data);  //but check if user already has this purchased
+        const transaction = await addPurchaseToTransactionsService(uId, purchase._id.toString());
+        
+        if(transaction){
+            const result = await addUserToLeaderboardService(tId, uId);
 
-        if(result){
-            response.data = result;
-            response.message = "User registered successfully";
-        }else{
+            if(result){
+                response.data = result;
+                response.message = "User registered successfully";
+            }else{
+                response.success = false;
+                response.status = 400;
+                response.message = "User is already registered";
+                response.error = {
+                    code: 400,
+                    message: "User is already registered",
+                    target: "client side api calling issue"
+                }
+            }
+        } else{
             response.success = false;
             response.status = 400;
-            response.message = "User is already registered";
+            response.message = "No transaction documment found for uId";
             response.error = {
                 code: 400,
-                message: "User is already registered",
+                message: "No transaction documment found for uId",
                 target: "client side api calling issue"
             }
         }

@@ -317,6 +317,19 @@ userSchema.pre("save", async function (next) {
     next();
 });
 
+userSchema.post('save', async function(doc, next) {
+    try {
+        const transaction = new Transaction({ 
+            uId: doc._id, 
+            uName: doc.userName 
+        });
+        await transaction.save();
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
 userSchema.pre('findOneAndUpdate', async function() {
   const versionTable = await Version.findOne({ table: 'users' });
   if (versionTable) {
@@ -332,19 +345,6 @@ userSchema.pre('findOneAndDelete', async function() {
     if (versionTable) {
       versionTable.version = versionTable.version + 1;
       await versionTable.save();
-    }
-});
-
-userSchema.post('save', async function(doc, next) {
-    try {
-        const transaction = new Transaction({ 
-            uId: doc._id, 
-            uName: doc.userName 
-        });
-        await transaction.save();
-        next();
-    } catch (error) {
-        next(error);
     }
 });
 
