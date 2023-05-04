@@ -18,7 +18,7 @@ router
 
 router
 .route('/profile/:id')
-.get(authentication, authorization("user", "admin"), validateVersion, validateParams, accountControllers.getUserProfile)
+.get(authentication, authorization("admin"), validateVersion, validateParams, accountControllers.getUserProfile)
 .patch(authentication, authorization("user", "admin"), validateParams, accountControllers.updateProfileById)
 .delete(authentication, authorization("admin"), validateParams, accountControllers.deleteProfileById)
 

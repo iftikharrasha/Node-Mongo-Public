@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const { ObjectId } = mongoose.Schema.Types;
 const Version = require('./version.model');
 
-const productSchema = new mongoose.Schema({
+const purchaseSchema = new mongoose.Schema({
     amount: { 
         type: Number,
         default: 0,
@@ -91,5 +91,18 @@ const productSchema = new mongoose.Schema({
     },
 }, { timestamps: true });
 
-const Purchase = mongoose.model('Purchase', productSchema);
+purchaseSchema.pre("save", async function (next) {
+    const versionTable = await Version.findOne({ table: 'purchases' });
+
+    if (versionTable) {
+        versionTable.version = versionTable.version + 1;
+        await versionTable.save();
+    } else {
+        await Version.create({ table: 'purchases', version: 1 });
+    }
+
+    next();
+});
+
+const Purchase = mongoose.model('Purchase', purchaseSchema);
 module.exports = Purchase;

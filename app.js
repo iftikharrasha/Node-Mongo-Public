@@ -15,7 +15,7 @@ app.use(express.json());
 app.use("/api/v1/account", accountRoute)
 app.use("/api/v1/tournaments", tournamentRoute)
 app.use("/api/v1/statics", staticRoute)
-app.use("/api/v1/team", teamRoute)
+app.use("/api/v1/teams", teamRoute)
 app.use("/api/v1/wallet", walletRoute)
 
 app.get('/', (req, res) => {

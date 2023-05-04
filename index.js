@@ -14,7 +14,7 @@ const port = process.env.PORT || 5000;
 //   })
 //   .catch((err) => {
 //     console.log(err);
-//   });
+// });
 
 //connect database with mongoose and start socket server
 mongooseConnect()

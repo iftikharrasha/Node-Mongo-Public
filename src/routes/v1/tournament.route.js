@@ -7,8 +7,8 @@ const authorization = require("../../middlewares/authorization");
 const validateVersion = require("../../middlewares/validateVersion");
 const validateParams = require("../../middlewares/validateParams");
 
-//write js documentation
-// base route: /api/v1/tournaments
+// write js documentation
+// base route: /api/v1/tournaments/id
 
 router
 .route('/')

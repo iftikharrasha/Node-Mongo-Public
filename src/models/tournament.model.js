@@ -264,11 +264,11 @@ const tournamentSchema = new mongoose.Schema({
             feeType: 'money',
             mode: "solo",
             maxParticipitant: 2,
-            map: "NA",
             rounds: 1,
             tournamentRules: null,
             teamSize: 1,
             registrationEnd: false,
+            map: "NA",
         },
         validate: {
             validator: function(settings) {

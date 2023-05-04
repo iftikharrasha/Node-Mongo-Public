@@ -355,3 +355,8 @@ userSchema.methods.comparePassword = function (password, hash) {
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;
+
+// #TODO:
+// 0. when user deleted transactions needs to be deleted too
+// 1. when user data is updated like permissions, the token needs to be updated too otherwise authorize issues
+// 2. When a api is sent with jwt, that jwt needs to be for the person who initiated the api
