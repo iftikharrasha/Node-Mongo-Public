@@ -1,5 +1,5 @@
 const { ObjectId } = require("mongodb");
-const { getLandingStaticsService } = require("../services/statics.service");
+const { getLandingStaticsService, createStaticService } = require("../services/statics.service");
 const { getVersionTableService } = require("../services/versionTable.service");
 
 const getLandingStatics = async (req, res, next) => {
@@ -102,6 +102,38 @@ const getLandingStatics = async (req, res, next) => {
     }
 }
 
+const createStatic = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        version: 1,
+        data: {},
+        error: null,
+        message: "Success",
+    }
+    try {
+    // save or create
+        const result = await createStaticService(req.body);
+
+        response.data = result;
+        response.message = "Static created successfully";
+
+        res.send(response);
+    } catch (error) {
+        response.success = false;
+        response.status = 400;
+        response.message = "Data is not inserted";
+        response.error = {
+            code: 400,
+            message: error.message,
+            target: "client side api calling issue"
+        }
+
+        res.send(response);
+    }
+};
+
 module.exports = {
     getLandingStatics,
+    createStatic,
 }

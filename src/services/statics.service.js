@@ -1,5 +1,5 @@
 const { getDb } = require("../utils/dbConnect")
-const { ObjectId } = require("mongodb");
+const Static = require('../models/static.model');
 
 const getLandingStaticsService = async () => {
     const db = getDb();
@@ -7,6 +7,12 @@ const getLandingStaticsService = async () => {
     return landing;
 }
 
+const createStaticService = async (data) => {
+    const static = await Static.create(data);
+    return static;
+}
+
 module.exports = {
     getLandingStaticsService,
+    createStaticService
 }
