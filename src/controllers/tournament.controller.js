@@ -47,6 +47,14 @@ const getAllTournaments = async (req, res, next) => {
                     target: "approx what the error came from"
                 }
             }
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "No tournaments found!",
+                target: "database"
+            }
         }
     } catch (err) {
         console.log(err);

@@ -1,5 +1,5 @@
-const { ObjectId } = require("mongodb");
-const { getAllTeamsService, createTeamService } = require("../services/team.service");
+
+const { getAllTeamsService, getMyTeamsByIdService, createTeamService } = require("../services/team.service");
 const { getVersionTableService } = require("../services/versionTable.service");
 
 const getAllTeams = async (req, res, next) => {
@@ -84,6 +84,71 @@ const getAllTeams = async (req, res, next) => {
     }
 }
 
+const getMyTeamsById = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        version: 1,
+        data: {},
+        error: null,
+    }
+    try {
+        const clientVersion = parseInt(req.query.version);
+        const data = await getMyTeamsByIdService(req.params.id);
+        const versionData = await getVersionTableService();
+
+        if(!data){
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "No teams found!",
+                target: "database"
+            }
+        }else{
+            try {
+                let serverVersion = 0;
+                const tableData = versionData.find( item => item.table === "teams");
+                if (tableData && tableData.version) {
+                    serverVersion = tableData.version;
+                }
+
+                if (serverVersion > clientVersion) {
+                    response.data = data;
+                    response.version = serverVersion;
+                }else {
+                    response.status = 304;
+                    response.version = serverVersion;
+                    response.error = {
+                        code: 304,
+                        message: "Client have the latest version",
+                        target: "fetch data from the redux store"
+                    }
+                }
+            } catch (err) {
+                response.data = null;
+                response.success = false;
+                response.status = 500;
+                response.version = serverVersion;
+                response.error = {
+                    code: 500,
+                    message: "An Internal Error Has Occurred!",
+                    target: "approx what the error came from"
+                }
+            }
+        }
+    } catch (error) {
+        response.success = false;
+        response.status = 500;
+        response.error = { 
+            code: 500, 
+            message: "An Internal Error Has Occurred!",
+            target: "approx what the error came from", 
+        }
+    }
+    res.send(response);
+};
+
 const addANewTeam = async (req, res, next) => {
     let response = {
         success: true,
@@ -117,5 +182,6 @@ const addANewTeam = async (req, res, next) => {
 
 module.exports = {
     getAllTeams,
+    getMyTeamsById,
     addANewTeam,
 }

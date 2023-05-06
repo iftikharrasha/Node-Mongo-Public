@@ -1,10 +1,9 @@
-const { getDb } = require("../utils/dbConnect")
+
 const Static = require('../models/static.model');
 
 const getLandingStaticsService = async () => {
-    const db = getDb();
-    const landing = await db.collection("staticLanding").findOne({});
-    return landing;
+    const static = await Static.findOne({})
+    return static;
 }
 
 const createStaticService = async (data) => {

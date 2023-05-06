@@ -76,14 +76,14 @@ const userLogin = async (req, res, next) => {
                 message: "Please provide your credentials correctly",
                 target: "client side api calling issue send"
             }
-            res.send(response);
+            res.status(400).send(response);
         }else{
             try{
                 // const user = await userLoginService(emailAddress, password);
                 const user = await findUserByEmail(emailAddress);
                 
                 if (!user) {
-                    res.send({
+                    res.status(401).send({
                         success: false,
                         status: 401,
                         data: {},
@@ -99,7 +99,7 @@ const userLogin = async (req, res, next) => {
                     const isPasswordValid = user.comparePassword(password, user.password);
 
                     if (!isPasswordValid) {
-                        return res.send({
+                        return res.status(401).send({
                             success: false,
                             status: 401,
                             data: {},
@@ -112,7 +112,7 @@ const userLogin = async (req, res, next) => {
                             }
                         });
                     }else if (user.status != "active") {
-                        return res.send({
+                        return res.status(401).send({
                             success: false,
                             status: 401,
                             data: {},
@@ -135,12 +135,12 @@ const userLogin = async (req, res, next) => {
                         response.refreshToken = refreshToken;
                         response.data = cleanedProfile;
 
-                        res.send(response);
+                        res.status(200).send(response);
                     }
                 }
             } catch (err) {
                 console.log(err);
-                res.send({
+                res.status(500).send({
                     success: false,
                     status: 500,
                     data: null,

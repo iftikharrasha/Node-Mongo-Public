@@ -11,7 +11,7 @@ const validateParams = require("../../middlewares/validateParams");
 
 router
 .route('/')
-.get(validateVersion, validateParams, staticsControllers.getLandingStatics)
+.get(validateVersion, staticsControllers.getLandingStatics)
 .post(authentication, authorization("admin"), staticsControllers.createStatic)
 
 module.exports = router;

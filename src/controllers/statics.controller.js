@@ -15,16 +15,7 @@ const getLandingStatics = async (req, res, next) => {
 
         const { version, country } = req.query;
 
-        if(!version){
-            response.success = false;
-            response.status = 400;
-            response.error = {
-                code: 400,
-                message: "Missing version query parameter!",
-                target: "client side api calling issue send"
-            }
-            res.send(response);
-        }else if(!country){
+        if(!country){
             response.success = false;
             response.status = 400;
             response.error = {
@@ -39,7 +30,7 @@ const getLandingStatics = async (req, res, next) => {
 
             const versionData = await getVersionTableService();
             
-            const tableData = versionData.find( item => item.table === "staticLanding");
+            const tableData = versionData.find( item => item.table === "statics");
             if (tableData && tableData.version) {
                 serverVersion = tableData.version;
             }
@@ -51,7 +42,7 @@ const getLandingStatics = async (req, res, next) => {
                     response.status = 404;
                     response.error = {
                         code: 404,
-                        message: `Landing details not found for lang=${country}!`,
+                        message: `Static details not found for lang=${country}!`,
                         target: "database"
                     }
                 }else{
@@ -92,7 +83,7 @@ const getLandingStatics = async (req, res, next) => {
                     error: { 
                         code: 500, 
                         message: "An Internal Error Has Occurred!",
-                        target: "approx what the error came from", 
+                        target: "approx what the error came from 2", 
                     }
                 });
             }
