@@ -59,7 +59,7 @@ const purchaseSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: {
-            values: ["approved", "pending", "incoming", "cancelled", "blocked"],
+            values: ["approved", "pending", "incoming", "cancelled"],
             message: "{VALUE} is not a valid status",
         },
         default: "pending",

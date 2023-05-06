@@ -167,7 +167,6 @@ const updateTournamentDetails = async (req, res, next) => {
         const { id } = req.params;
     
         const result = await updateTournamentByIdService(id, req.body);
-        console.log(result)
     
         if (!result) {
             response.success = false;

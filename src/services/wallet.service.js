@@ -52,7 +52,7 @@ const getMyTransactionsByIdService = async (id) => {
                                         .populate({
                                             path: 'transactions',
                                             select: excludedPurchaseFields,
-                                            // match: { status: { $ne: 'blocked' } } //we get purchases which are not blocked
+                                            // match: { status: { $ne: 'cancelled' } } //we get purchases which are not blocked
                                         });
     return transaction;
 }

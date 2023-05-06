@@ -5,7 +5,7 @@ const excludedMasterFields = '-firstName -lastName -balance -password -dateofBir
 const excludedUserFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -requests -stats -socials -updatedAt -__v';
 
 const getAllTournamentsService = async () => {
-    const tournaments = await Tournament.find({ status: 'inactive' })
+    const tournaments = await Tournament.find({ status: 'active' })
                                         .populate('masterProfile', excludedMasterFields)
     return tournaments;
 
