@@ -20,18 +20,27 @@ const createNotificationService = async (data) => {
     return notification;
 }
 
-const updateReadStatusService = async (id, data) => {
-    const result = await Notification.updateOne(
-        { _id: id },
-        { $set: { read: !data.read } }
-      );
+const updateNotificationService = async (id, data) => {
+    const result = await Notification.findOneAndUpdate({ _id: id }, data, {
+        new: true,
+        runValidators: false
+    });
     return result;
 }
+
+// const updateReadStatusService = async (id, data) => {
+//     const result = await Notification.updateOne(
+//         { _id: id },
+//         { $set: { read: !data.read } }
+//       );
+//     return result;
+// }
 
 module.exports = {
     getAllNotificationsService,
     getLimitedNotificationsService,
     getNotificationByIdService,
-    updateReadStatusService,
-    createNotificationService
+    updateNotificationService,
+    createNotificationService,
+    // updateReadStatusService,
 }

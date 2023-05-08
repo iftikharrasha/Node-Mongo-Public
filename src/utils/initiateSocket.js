@@ -3,7 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const ObjectId = require('mongodb').ObjectId;
 const moment = require('moment');
-const { getAllNotificationsService, createNotificationService, getNotificationByIdService, updateReadStatusService } = require('../services/notification.service');
+const { getAllNotificationsService, createNotificationService, getNotificationByIdService, updateNotificationService } = require('../services/notification.service');
 
 async function initiateSocket(app, database, port) {
     try {
@@ -16,7 +16,6 @@ async function initiateSocket(app, database, port) {
 
         const chatRoom = database.collection("chatRoom");
         const inboxMessages = database.collection("inboxMessages");
-        const notifications = database.collection("notifications"); //model created
 
         // Create an io server and allow for CORS from ORIGIN with GET and POST methods
         const server = http.createServer(app);
@@ -39,13 +38,15 @@ async function initiateSocket(app, database, port) {
 
             socket.on('join_notifications', async (data) => {
                 console.log(`User connected to notyf socketID: ${socket.id}`);
-                const { userId } = data; // Data sent from client when join_room event emitted
+
+                 // Data sent from client when join_room event emitted
+                const { userId } = data;
+
                 // Join the user to the notification socket using their unique ID
                 socket.join(userId);
 
                 //send all messages from DB
                 const last10Notifications = await getAllNotificationsService(userId);
-    
                 if (last10Notifications) {
                     socket.emit("last_10_notifications", last10Notifications);
                 }
@@ -82,11 +83,17 @@ async function initiateSocket(app, database, port) {
                 notificationNamespace.to(receivedById).emit("receive_notification", result); 
             });
 
-            socket.on("read_notification", async (id) => { 
+            socket.on("update_notification", async (id, data) => { 
                 const notification = await getNotificationByIdService(id);
 
                 if (notification) {
-                    const updatedNotification = await updateReadStatusService(id, notification);
+                    const modifiedData = {
+                        ...notification.toObject(),
+                        ...data,
+                        read: !notification.read
+                    };
+                    // const readNotyf = await updateReadStatusService(id, notification);
+                    const updatedNotification = await updateNotificationService(id, modifiedData);
                 }
             }); 
 

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const validator = require("validator");
 const { ObjectId } = mongoose.Schema.Types;
 
 const notificationSchema = new mongoose.Schema({
@@ -12,6 +13,7 @@ const notificationSchema = new mongoose.Schema({
     },
     subjectPhoto: { 
         type: String,
+        validate: [validator.isURL, "Please provide a valid image url"],
         required: true
     },
     invokedByName: { 
@@ -20,7 +22,8 @@ const notificationSchema = new mongoose.Schema({
     },
     invokedById: { 
         type: ObjectId,
-        required: true 
+        ref: 'User',
+        required: true
     },
     receivedByName: { 
         type: String,
@@ -28,6 +31,7 @@ const notificationSchema = new mongoose.Schema({
     },
     receivedById: { 
         type: ObjectId,
+        ref: 'User',
         required: true 
     },
     route: { 
