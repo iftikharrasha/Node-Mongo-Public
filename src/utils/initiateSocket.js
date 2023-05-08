@@ -3,6 +3,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const ObjectId = require('mongodb').ObjectId;
 const moment = require('moment');
+const { getAllNotificationsService, createNotificationService, getNotificationByIdService, updateReadStatusService } = require('../services/notification.service');
 
 async function initiateSocket(app, database, port) {
     try {
@@ -15,7 +16,7 @@ async function initiateSocket(app, database, port) {
 
         const chatRoom = database.collection("chatRoom");
         const inboxMessages = database.collection("inboxMessages");
-        const notifications = database.collection("notifications");
+        const notifications = database.collection("notifications"); //model created
 
         // Create an io server and allow for CORS from ORIGIN with GET and POST methods
         const server = http.createServer(app);
@@ -43,10 +44,7 @@ async function initiateSocket(app, database, port) {
                 socket.join(userId);
 
                 //send all messages from DB
-                const query = { receivedById: userId };
-                // const last10Notifications =  await cursor.sort({ _id: -1 }).limit(10).toArray();
-                const cursor = notifications.find(query).sort({ timeStamp: -1 });
-                const last10Notifications =  await cursor.toArray();
+                const last10Notifications = await getAllNotificationsService(userId);
     
                 if (last10Notifications) {
                     socket.emit("last_10_notifications", last10Notifications);
@@ -72,28 +70,23 @@ async function initiateSocket(app, database, port) {
                 );
 
                 socket.emit('track_uniqueInbox', latestInbox);
-
             })
 
             socket.on("send_notification", async (data) => {
                 const { type, receivedById } = data; 
 
-                // Send to the specified user only
-                notificationNamespace.to(receivedById).emit("receive_notification", data); 
-
                 // Save notification to database
-                // const result = await notifications.insertOne(data);
+                const result = await createNotificationService(data);
+
+                // Send the created notification to the specified user only
+                notificationNamespace.to(receivedById).emit("receive_notification", result); 
             });
 
             socket.on("read_notification", async (id) => { 
-                const query = { _id: ObjectId(id) };
-                const notification = await notifications.findOne(query);
+                const notification = await getNotificationByIdService(id);
 
                 if (notification) {
-                    const updatedNotification = await notifications.updateOne(
-                        { _id: ObjectId(id) },
-                        { $set: { read: !notification.read } }
-                    );
+                    const updatedNotification = await updateReadStatusService(id, notification);
                 }
             }); 
 
