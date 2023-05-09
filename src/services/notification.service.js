@@ -20,7 +20,7 @@ const createNotificationService = async (data) => {
     return notification;
 }
 
-const updateNotificationService = async (id, data) => {
+const updateNotificationByIdService = async (id, data) => {
     const result = await Notification.findOneAndUpdate({ _id: id }, data, {
         new: true,
         runValidators: false
@@ -36,11 +36,17 @@ const updateNotificationService = async (id, data) => {
 //     return result;
 // }
 
+const deleteNotificationByIdService = async (id) => {
+    const result = await Notification.findByIdAndDelete({ _id: id });
+    return result;
+};
+
 module.exports = {
     getAllNotificationsService,
     getLimitedNotificationsService,
     getNotificationByIdService,
-    updateNotificationService,
+    updateNotificationByIdService,
     createNotificationService,
+    deleteNotificationByIdService,
     // updateReadStatusService,
 }

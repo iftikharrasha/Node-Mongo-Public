@@ -3,7 +3,8 @@ const http = require('http');
 const { Server } = require('socket.io');
 const ObjectId = require('mongodb').ObjectId;
 const moment = require('moment');
-const { getAllNotificationsService, createNotificationService, getNotificationByIdService, updateNotificationService } = require('../services/notification.service');
+const { getAllNotificationsService, createNotificationService, getNotificationByIdService, updateNotificationByIdService, deleteNotificationByIdService } = require('../services/notification.service');
+const { getDistinceSendersById, getLastestMessageForUniqueSenders, getInboxMessagesByRoomId, createInboxMessageService } = require('../services/inbox.service');
 
 async function initiateSocket(app, database, port) {
     try {
@@ -52,21 +53,13 @@ async function initiateSocket(app, database, port) {
                 }
 
                 //now to get all the latest unique messages from one to one convo
-                const uniqueSenders = [];
-                const query2 = { receiverId: userId };
-                const cursor2 = await inboxMessages.distinct('senderId', query2);
-                uniqueSenders.push(...cursor2);
-
+                const uniqueSenders = await getDistinceSendersById(userId);
+                
                  // Get the latest message for each senderId
                 const latestInbox = await Promise.all(
                     uniqueSenders.map(async (senderId) => {
-                        const latestMessage = await inboxMessages
-                            .find({ senderId, receiverId: userId })
-                            .sort({ timeStamp: -1 })
-                            .limit(1)
-                            .toArray();
-
-                        return latestMessage[0];
+                        const latestMessage = await getLastestMessageForUniqueSenders(senderId, userId);
+                        return latestMessage;
                     })
                 );
 
@@ -93,8 +86,12 @@ async function initiateSocket(app, database, port) {
                         read: !notification.read
                     };
                     // const readNotyf = await updateReadStatusService(id, notification);
-                    const updatedNotification = await updateNotificationService(id, modifiedData);
+                    const updatedNotification = await updateNotificationByIdService(id, modifiedData);
                 }
+            }); 
+
+            socket.on("delete_notification", async (id) => { 
+                const notification = await deleteNotificationByIdService(id);
             }); 
 
             socket.on("disconnect", () => {
@@ -109,24 +106,23 @@ async function initiateSocket(app, database, port) {
             socket.on('join_inbox', async (data) => {
                 const { roomId, userId } = data;
                 console.log(`User joined room ${roomId}`);
+                
                 socket.join(roomId);
 
                 //send all messages from DB
-                const query = { roomId: roomId };
-                const cursor = inboxMessages.find(query);
-                const last100Texts = await cursor.toArray();
+                const latestInboxMessages = await getInboxMessagesByRoomId(roomId);
 
-                socket.emit("last_100_texts", last100Texts);
+                socket.emit("last_100_texts", latestInboxMessages);
             });
           
             socket.on('send_message', async (data) => {
-                const { message, senderName, senderPhoto, roomId, room, senderId, timeStamp, senderPermissions, receiverId, read, messageCount } = data;
+                const { message, senderName, senderPhoto, roomId, senderId, timeStamp, senderPermissions, receiverId, read, messageCount } = data;
 
                 // Broadcast the message to all users in the room
                 inboxChatNamespace.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, timeStamp, sound: "msg" }); 
 
                 // Save message to database
-                const result = await inboxMessages.insertOne(data);
+                const result = await createInboxMessageService(data);
 
                 // Emit the same message to the notificationNamespace
                 notificationNamespace.to(receiverId).emit("track_incoming", { 
@@ -134,7 +130,6 @@ async function initiateSocket(app, database, port) {
                     senderName, 
                     senderPhoto, 
                     roomId, 
-                    room, 
                     senderId, 
                     timeStamp, 
                     senderPermissions, 
@@ -157,7 +152,7 @@ async function initiateSocket(app, database, port) {
 
         // Listen for when the client connects via socket.io-client
         chatNamespace.on('connection', (socket) => {
-            //   console.log(`User connected to socketID: ${socket.id}`);
+            console.log(`User connected to socketID: ${socket.id}`);
 
             // Add a user to a room
             socket.on('join_room', async (data) => {
