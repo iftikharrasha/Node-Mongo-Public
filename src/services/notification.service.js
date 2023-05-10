@@ -1,12 +1,12 @@
 const Notification = require("../models/notification.model");
 
 const getAllNotificationsService = async (uid) => {
-    const notifications = await Notification.find({ receivedById: uid });
+    const notifications = await Notification.find({ receivedById: uid }).sort({createdAt: -1});
     return notifications;
 }
 
 const getLimitedNotificationsService = async (uid) => {
-    const notifications = await Notification.find({ receivedById: uid }).limit(10);
+    const notifications = await Notification.find({ receivedById: uid }).sort({createdAt: -1}).limit(10);
     return notifications;
 }
 

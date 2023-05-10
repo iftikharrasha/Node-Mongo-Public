@@ -3,6 +3,11 @@ const { ObjectId } = mongoose.Schema.Types;
 const Version = require('./version.model');
 
 const purchaseSchema = new mongoose.Schema({
+    purchasedById: { 
+        type: ObjectId,
+        ref: 'User',
+        required: true 
+    },
     amount: { 
         type: Number,
         default: 0,

@@ -116,10 +116,10 @@ async function initiateSocket(app, database, port) {
             });
           
             socket.on('send_message', async (data) => {
-                const { message, senderName, senderPhoto, roomId, senderId, timeStamp, senderPermissions, receiverId, read, messageCount } = data;
+                const { message, senderName, senderPhoto, roomId, senderId, senderPermissions, receiverId, read, messageCount } = data;
 
                 // Broadcast the message to all users in the room
-                inboxChatNamespace.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, timeStamp, sound: "msg" }); 
+                inboxChatNamespace.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, sound: "msg" }); 
 
                 // Save message to database
                 const result = await createInboxMessageService(data);
@@ -131,7 +131,6 @@ async function initiateSocket(app, database, port) {
                     senderPhoto, 
                     roomId, 
                     senderId, 
-                    timeStamp, 
                     senderPermissions, 
                     receiverId, 
                     read,

@@ -11,7 +11,7 @@ const getDistinceSendersById = async (uid) => {
 }
 
 const getLastestMessageForUniqueSenders = async (senderId, userId) => {
-    const senders = await Inbox.findOne({ senderId, receiverId: userId }).limit(1);
+    const senders = await Inbox.findOne({ senderId, receiverId: userId }).sort({createdAt: -1}).limit(1);
     return senders;
 }
 

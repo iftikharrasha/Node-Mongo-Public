@@ -34,10 +34,32 @@ const deleteProfileByIdService = async (id) => {
     return result;
 };
 
+const addPurchasedItemToUserService = async (tId, uId) => {
+    //pushing tournament id inside the user
+    const currentUser = await User.findOne({ _id: uId });
+
+    if(currentUser){
+        if (currentUser.purchasedItems.tournaments.indexOf(tId) !== -1) {
+            return false
+        } else {
+            const result = await User.findOneAndUpdate(
+                { _id: currentUser._id },
+                {  $push: { "purchasedItems.tournaments": tId } },
+                { new: true }
+            );
+            
+            return result;
+        }
+    }else{
+        return false
+    }
+};
+
 module.exports = {
     userSignupService,
     findUserByEmail,
     findUserById,
     updateProfileByIdService,
     deleteProfileByIdService,
+    addPurchasedItemToUserService
 }

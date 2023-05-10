@@ -4,11 +4,12 @@ const Leaderboard = require('../models/leaderboard.model')
 const excludedMasterFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -requests -stats -socials -updatedAt -__v';
 const excludedUserFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -requests -stats -socials -updatedAt -__v';
 
-const getAllTournamentsService = async () => {
+const getAllTournamentsService = async (userId) => {
     const tournaments = await Tournament.find({ status: 'active' })
+                                        .sort({createdAt: -1})
                                         .populate('masterProfile', excludedMasterFields)
+    
     return tournaments;
-
 }
 
 const getTournamentDetailsService = async (id) => {
@@ -59,13 +60,6 @@ const deleteTournamentLeaderboardByIdService = async (id) => {
 };
 
 const addUserToLeaderboardService = async (tId, uId) => {
-    //creating user id inside tournament leaderboard
-    // const tournament = await Tournament.findOneAndUpdate(
-    //     { _id: tId },
-    //     { $push: { leaderboards: { $each: [uId], $position: 0 } } },
-    //     { new: true }
-    // );
-
     //pushing user id inside separate leaderboard
     const currentLeaderboard = await Leaderboard.findOne({ tId: tId });
 
@@ -96,3 +90,4 @@ module.exports = {
 //check if user already registered?
 //leaderboard version table
 //what if user changed his profile pic, will version table be changed?
+// when user registeres to the tournament that tournament needs to go inside purchaseItem of user

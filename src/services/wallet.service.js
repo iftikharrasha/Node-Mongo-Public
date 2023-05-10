@@ -60,6 +60,7 @@ const getMyTransactionsByIdService = async (id) => {
 const addPurchaseToTransactionsService = async (uId, pId) => {
     //pushing user id inside separate leaderboard
     const currentTransaction = await Transaction.findOne({ uId: uId });
+    console.log("currentTransaction", currentTransaction)
 
     if(currentTransaction){
         if (currentTransaction.transactions.indexOf(pId) !== -1) {

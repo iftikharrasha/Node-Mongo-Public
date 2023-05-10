@@ -1,6 +1,7 @@
 const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, addUserToLeaderboardService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
+const { addPurchasedItemToUserService } = require("../services/account.service.js");
 
 const getAllTournaments = async (req, res, next) => {
     let response = {
@@ -13,7 +14,9 @@ const getAllTournaments = async (req, res, next) => {
     }
     try {
         const clientVersion = parseInt(req.query.version);
-        const data = await getAllTournamentsService();
+        const token = req.headers?.authorization?.split(" ")?.[1];
+
+        const data = await getAllTournamentsService(token?.sub);
         const versionData = await getVersionTableService();
 
         if (data.length > 0) {
@@ -306,32 +309,54 @@ const tournamentRegistration = async (req, res, next) => {
         const data = req.body;
 
         // save or create
-        const purchase = await addToPurchaseService(data);  //but check if user already has this purchased
-        const transaction = await addPurchaseToTransactionsService(uId, purchase._id.toString());
-        
-        if(transaction){
-            const result = await addUserToLeaderboardService(tId, uId);
+        const purchased = await addToPurchaseService(data);  //but check if user already has this purchased
+        if(purchased) {
+            const transaction = await addPurchaseToTransactionsService(uId, purchased._id.toString());
+            if(transaction){
+                const result = await addUserToLeaderboardService(tId, uId);
+                if(result){
+                    const purchaseItem = await addPurchasedItemToUserService(tId, uId);
 
-            if(result){
-                response.data = result;
-                response.message = "User registered successfully";
-            }else{
+                    if(purchaseItem){
+                        response.data = result;
+                        response.message = "User registered successfully";
+                    }else{
+                        response.success = false;
+                        response.status = 400;
+                        response.message = "Problem adding purchase item to user object";
+                        response.error = {
+                            code: 400,
+                            message: "User is already registered",
+                            target: "client side api calling issue"
+                        }
+                    }
+                }else{
+                    response.success = false;
+                    response.status = 400;
+                    response.message = "Problem adding user to leaderboard";
+                    response.error = {
+                        code: 400,
+                        message: "Problem adding user to leaderboard",
+                        target: "client side api calling issue"
+                    }
+                }
+            } else{
                 response.success = false;
                 response.status = 400;
-                response.message = "User is already registered";
+                response.message = "No transaction documment found for uId";
                 response.error = {
                     code: 400,
-                    message: "User is already registered",
+                    message: "No transaction documment found for uId",
                     target: "client side api calling issue"
                 }
             }
-        } else{
+        }else{
             response.success = false;
             response.status = 400;
-            response.message = "No transaction documment found for uId";
+            response.message = "Problem purchasing the item";
             response.error = {
                 code: 400,
-                message: "No transaction documment found for uId",
+                message: "Problem purchasing the item",
                 target: "client side api calling issue"
             }
         }

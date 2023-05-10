@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router()
 const tournamentControllers = require('../../controllers/tournament.controller');
-const viewCount = require('../../middlewares/viewCount');
 const authentication = require("../../middlewares/authentication");
 const authorization = require("../../middlewares/authorization");
 const validateVersion = require("../../middlewares/validateVersion");
 const validateParams = require("../../middlewares/validateParams");
+const viewCount = require('../../middlewares/viewCount');
 
 // write js documentation
 // base route: /api/v1/tournaments/id

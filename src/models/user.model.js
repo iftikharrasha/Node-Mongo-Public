@@ -179,6 +179,16 @@ const userSchema = new mongoose.Schema({
         followings: [{ type: ObjectId, ref: 'User' }]
     },
     teams: [{ type: ObjectId, ref: 'Team' }],
+    purchasedItems: {
+        tournaments: [{
+          type: ObjectId,
+          ref: 'Tournament'
+        }],
+        topups: [{
+          type: ObjectId,
+          ref: 'Topup'
+        }]
+    },
     stats: {
         totalTournamentPlayed: {
             type: Number,
