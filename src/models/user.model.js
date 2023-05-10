@@ -367,6 +367,7 @@ const User = mongoose.model('User', userSchema);
 module.exports = User;
 
 // #TODO:
-// 0. when user deleted transactions needs to be deleted too
 // 1. when user data is updated like permissions, the token needs to be updated too otherwise authorize issues
 // 2. When a api is sent with jwt, that jwt needs to be for the person who initiated the api
+// 3. when user is deleted his transaction needs to be deleted too, but he is still on leaderboard!
+// 4. when purchased user version needs to be updated, purchased item needs to be injected in redux store of user profile

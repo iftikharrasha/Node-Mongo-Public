@@ -1,6 +1,7 @@
 const _ = require('lodash');
-const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService } = require("../services/account.service");
 const { generateToken, generateRefreshToken } = require("../utils/token");
+const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService } = require("../services/account.service");
+const { deleteTransactionByIdService } = require('../services/wallet.service');
 
 const userSignup = async (req, res) => {
     let response = {
@@ -289,7 +290,10 @@ const deleteProfileById = async (req, res, next) => {
         error: null
     }
     try {
-        const result = await deleteProfileByIdService(req.params.id);
+        const { id } = req.params;
+
+        const result = await deleteProfileByIdService(id);
+        const result2 = await deleteTransactionByIdService(id);
     
         if (!result) {
             response.success = false;

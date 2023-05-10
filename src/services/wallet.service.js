@@ -60,7 +60,6 @@ const getMyTransactionsByIdService = async (id) => {
 const addPurchaseToTransactionsService = async (uId, pId) => {
     //pushing user id inside separate leaderboard
     const currentTransaction = await Transaction.findOne({ uId: uId });
-    console.log("currentTransaction", currentTransaction)
 
     if(currentTransaction){
         if (currentTransaction.transactions.indexOf(pId) !== -1) {
@@ -79,6 +78,11 @@ const addPurchaseToTransactionsService = async (uId, pId) => {
     }
 };
 
+const deleteTransactionByIdService = async (id) => {
+    const result = await Transaction.deleteOne({ uId: id });
+    return result;
+};
+
 module.exports = {
     getTopupsService,
     getTopupByIdService,
@@ -87,5 +91,6 @@ module.exports = {
     deleteTopupByIdService,
     addToPurchaseService,
     addPurchaseToTransactionsService,
-    getMyTransactionsByIdService
+    getMyTransactionsByIdService,
+    deleteTransactionByIdService
 }

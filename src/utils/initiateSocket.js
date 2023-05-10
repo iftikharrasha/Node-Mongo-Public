@@ -1,10 +1,10 @@
 const dotenv = require('dotenv').config();
 const http = require('http');
 const { Server } = require('socket.io');
-const ObjectId = require('mongodb').ObjectId;
 const moment = require('moment');
 const { getAllNotificationsService, createNotificationService, getNotificationByIdService, updateNotificationByIdService, deleteNotificationByIdService } = require('../services/notification.service');
 const { getDistinceSendersById, getLastestMessageForUniqueSenders, getInboxMessagesByRoomId, createInboxMessageService } = require('../services/inbox.service');
+const { getChatroomMessagesByRoomId, createChatRoomMessageService } = require('../services/chatroom.service');
 
 async function initiateSocket(app, database, port) {
     try {
@@ -16,7 +16,6 @@ async function initiateSocket(app, database, port) {
         let allUsersByRoom = {};
 
         const chatRoom = database.collection("chatRoom");
-        const inboxMessages = database.collection("inboxMessages");
 
         // Create an io server and allow for CORS from ORIGIN with GET and POST methods
         const server = http.createServer(app);
@@ -155,14 +154,15 @@ async function initiateSocket(app, database, port) {
 
             // Add a user to a room
             socket.on('join_room', async (data) => {
-                const { userId, roomId, senderName, senderPhoto, stats } = data; // Data sent from client when join_room event emitted
+                // Data sent from client when join_room event emitted
+                const { userId, roomId, senderName, senderPhoto, stats } = data;
                 chatRoomId = roomId;
 
                 socket.join(chatRoomId); // Join the user to a socket room
 
-                const now = Date.now(); // Current timestamp
+                const now = Date.now(); // Current createdAt
                 const date = moment(now);
-                const timeStamp = date.format('YYYY-MM-DDTHH:mm:ss.SSS');
+                const createdAt = date.format('YYYY-MM-DDTHH:mm:ss.SSS');
                 
                 // Send message to all users currently in the room, apart from the user that just joined
                 socket.broadcast.to(chatRoomId).emit('receive_message', {
@@ -170,7 +170,7 @@ async function initiateSocket(app, database, port) {
                     senderName: CHAT_BOT,
                     senderPhoto: CHAT_BOT_IMAGE,
                     read: false,
-                    timeStamp,
+                    createdAt,
                     sound: "bot"
                 });
 
@@ -180,7 +180,7 @@ async function initiateSocket(app, database, port) {
                     senderName: CHAT_BOT,
                     senderPhoto: CHAT_BOT_IMAGE,
                     read: false,
-                    timeStamp,
+                    createdAt,
                     sound: "bot"
                 });
 
@@ -190,17 +190,19 @@ async function initiateSocket(app, database, port) {
                 }
 
                 //allusers are users of all rooms
-                allUsersByRoom[chatRoomId].push({ id: userId, socketId: socket.id, roomId: chatRoomId, userName: senderName, photo: senderPhoto, timeStamp: timeStamp, stats: stats });
+                allUsersByRoom[chatRoomId].push({ id: userId, socketId: socket.id, roomId: chatRoomId, userName: senderName, photo: senderPhoto, createdAt: createdAt, stats: stats });
 
                 //only send the users of this room, since a lot of users will be joining to other rooms as well
                 socket.to(chatRoomId).emit("chatroom_users", allUsersByRoom[chatRoomId]);
                 socket.emit("chatroom_users", allUsersByRoom[chatRoomId]);
 
                 //send all messages from DB
-                const query = { roomId: chatRoomId };
-                const cursor = chatRoom.find(query);
-                const last100Messages = await cursor.limit(25).toArray();
+                // const query = { roomId: chatRoomId };
+                // const cursor = chatRoom.find(query);
+                // const last100Messages = await cursor.limit(25).toArray();
 
+                //send all messages from DB
+                const last100Messages = await getChatroomMessagesByRoomId(chatRoomId);
                 if (last100Messages) {
                     socket.emit("last_100_messages", last100Messages);
                 }
@@ -215,20 +217,21 @@ async function initiateSocket(app, database, port) {
             });
 
             socket.on("send_message", async (data) => {
-                const { message, senderName, roomId, timeStamp, senderPhoto, read, senderId } = data;
+                const { message, senderName, roomId, createdAt, senderPhoto, read, senderId } = data;
 
                 // Send to all users in room, including sender
-                chatNamespace.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, timeStamp, read, sound: "msg" }); 
+                chatNamespace.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, createdAt, read, sound: "msg" }); 
 
                 // Save message to database
-                const result = await chatRoom.insertOne(data);
+                // const result = await chatRoom.insertOne(data);
+                const result = await createChatRoomMessageService(data);
             });
 
             socket.on('ping', () => {
-                const timestamp = new Date().getTime();
-                const formattedDate = moment(timestamp).format('HH:mm:ss');
+                const createdAt = new Date().getTime();
+                const formattedDate = moment(createdAt).format('HH:mm:ss');
                 console.log(`Received ping from socket ${socket.id} at ${formattedDate}`);
-                socket.emit('pong', timestamp, formattedDate, socket.id);
+                socket.emit('pong', createdAt, formattedDate, socket.id);
 
                 // Reset the server timeout to 120000ms (2 minutes)
                 server.setTimeout(timeout);
@@ -241,7 +244,7 @@ async function initiateSocket(app, database, port) {
             });
 
             socket.on("leave_room", (data) => {
-                const { timeStamp } = data;
+                const { createdAt } = data;
                 let removedUser;
                 const updatedUsersByRoom = Object.fromEntries(
                     Object.entries(allUsersByRoom).map(([room, users]) => [
@@ -267,7 +270,7 @@ async function initiateSocket(app, database, port) {
                         message: `${removedUser?.userName} has left the room.`,
                         senderName: CHAT_BOT,
                         senderPhoto: CHAT_BOT_IMAGE,
-                        timeStamp: timeStamp,
+                        createdAt: createdAt,
                         read: false,
                         sound: "bot",
                     });
@@ -301,7 +304,7 @@ async function initiateSocket(app, database, port) {
                         message: `${removedUser?.userName} has left the room.`,
                         senderName: CHAT_BOT,
                         senderPhoto: CHAT_BOT_IMAGE,
-                        timeStamp: Date.now(),
+                        createdAt: Date.now(),
                         read: false,
                         sound: "bot",
                     });
