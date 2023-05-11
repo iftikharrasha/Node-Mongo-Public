@@ -14,9 +14,8 @@ const getAllTournaments = async (req, res, next) => {
     }
     try {
         const clientVersion = parseInt(req.query.version);
-        const token = req.headers?.authorization?.split(" ")?.[1];
 
-        const data = await getAllTournamentsService(token?.sub);
+        const data = await getAllTournamentsService();
         const versionData = await getVersionTableService();
 
         if (data.length > 0) {

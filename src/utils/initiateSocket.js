@@ -6,7 +6,7 @@ const { getAllNotificationsService, createNotificationService, getNotificationBy
 const { getDistinceSendersById, getLastestMessageForUniqueSenders, getInboxMessagesByRoomId, createInboxMessageService } = require('../services/inbox.service');
 const { getChatroomMessagesByRoomId, createChatRoomMessageService } = require('../services/chatroom.service');
 
-async function initiateSocket(app, database, port) {
+async function initiateSocket(app, port) {
     try {
         const CHAT_BOT = 'ChatBot';
         const CHAT_BOT_IMAGE = 'https://img.freepik.com/free-vector/cute-cat-gaming-cartoon_138676-2969.jpg';
@@ -14,8 +14,6 @@ async function initiateSocket(app, database, port) {
         let chatRoomId = "";
         let timeout = 120000;
         let allUsersByRoom = {};
-
-        const chatRoom = database.collection("chatRoom");
 
         // Create an io server and allow for CORS from ORIGIN with GET and POST methods
         const server = http.createServer(app);
@@ -197,11 +195,6 @@ async function initiateSocket(app, database, port) {
                 socket.emit("chatroom_users", allUsersByRoom[chatRoomId]);
 
                 //send all messages from DB
-                // const query = { roomId: chatRoomId };
-                // const cursor = chatRoom.find(query);
-                // const last100Messages = await cursor.limit(25).toArray();
-
-                //send all messages from DB
                 const last100Messages = await getChatroomMessagesByRoomId(chatRoomId);
                 if (last100Messages) {
                     socket.emit("last_100_messages", last100Messages);
@@ -222,8 +215,7 @@ async function initiateSocket(app, database, port) {
                 // Send to all users in room, including sender
                 chatNamespace.in(roomId).emit("receive_message", { message, senderName, senderPhoto, roomId, createdAt, read, sound: "msg" }); 
 
-                // Save message to database
-                // const result = await chatRoom.insertOne(data);
+                // Save message to databases
                 const result = await createChatRoomMessageService(data);
             });
 

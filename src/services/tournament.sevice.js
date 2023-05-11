@@ -4,7 +4,7 @@ const Leaderboard = require('../models/leaderboard.model')
 const excludedMasterFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -requests -stats -socials -updatedAt -__v';
 const excludedUserFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -requests -stats -socials -updatedAt -__v';
 
-const getAllTournamentsService = async (userId) => {
+const getAllTournamentsService = async () => {
     const tournaments = await Tournament.find({ status: 'active' })
                                         .sort({createdAt: -1})
                                         .populate('masterProfile', excludedMasterFields)
@@ -62,6 +62,7 @@ const deleteTournamentLeaderboardByIdService = async (id) => {
 const addUserToLeaderboardService = async (tId, uId) => {
     //pushing user id inside separate leaderboard
     const currentLeaderboard = await Leaderboard.findOne({ tId: tId });
+    console.log("currentLeaderboard", currentLeaderboard)
 
     if (currentLeaderboard.leaderboards.indexOf(uId) !== -1) {
         return false
@@ -71,6 +72,7 @@ const addUserToLeaderboardService = async (tId, uId) => {
             { $push: { leaderboards: { $each: [uId], $position: 0 } }, $inc: { version: 1 } },
             { new: true }
         );
+        console.log("result", result)
         
         return result;
     }

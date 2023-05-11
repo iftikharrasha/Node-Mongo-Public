@@ -243,7 +243,6 @@ const tournamentSchema = new mongoose.Schema({
         },
         default: ['latest']
     },
-    // purchased: { type: Boolean, default: false },
     version: { 
         type: Number, 
         default: 1 

@@ -42,18 +42,55 @@ const userSignup = async (req, res) => {
         res.send(response);
     } catch (error) {
         console.log(error);
-        res.send({
-            success: false,
-            status: 500,
-            data: null,
-            signed_in: false,
-            version: 1,
-            error: { 
-                code: 500, 
-                message: error._message,
-                target: "schema expects valid format", 
+        if (error.name === "MongoServerError" && error.code === 11000) {
+            res.send({
+                success: false,
+                status: 500,
+                data: null,
+                signed_in: false,
+                version: 1,
+                error: {
+                  code: 400,
+                  message: "Username already exists",
+                  target: "userName"
+                }
+            });
+        } 
+        else if (error.name === "ValidationError") {
+            const errors = {};
+            // extract first error message from errors object
+            const errorKeys = Object.keys(error.errors);
+            if (errorKeys.length > 0) {
+                errors[errorKeys[0]] = error.errors[errorKeys[0]].message;
             }
-        });
+
+            res.send({
+                success: false,
+                status: 500,
+                data: null,
+                signed_in: false,
+                version: 1,
+                error: { 
+                    code: 500, 
+                    message: errors[errorKeys[0]],
+                    target: "schema expects valid format 2", 
+                }
+            });
+        }else {
+            console.log(error);
+            res.send({
+                success: false,
+                status: 500,
+                data: null,
+                signed_in: false,
+                version: 1,
+                error: { 
+                    code: 500, 
+                    message: error._message,
+                    target: "schema expects valid format", 
+                }
+            });
+        }
     }
 };
 

@@ -80,7 +80,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         trim: true,
         unique: [true, "userName has to be unique"],
-        required: [true, "Please provide a first name"],
+        required: [true, "Please provide a username"],
         minLength: [3, "userName must be at least 3 characters."],
         maxLength: [14, "userName is too large"],
         validate: {
@@ -129,7 +129,7 @@ const userSchema = new mongoose.Schema({
     },
     mobileNumber: {
         type: String,
-        required: [true, "mobileNumber is required"],
+        required: [true, "Mobile number is required"],
         validate: [validator.isMobilePhone, "Please provide a valid mobile number"]
     },
     dateofBirth: {

@@ -32,10 +32,10 @@ const purchaseSchema = new mongoose.Schema({
     method: { 
         type: String,
         enum: {
-            values: ["bkash", "stripe", "etoken"],
+            values: ["bkash", "card", "balance"],
             message: "{VALUE} is not a valid method",
         },
-        default: 'etoken' 
+        default: 'balance' 
     },
     remarks: { 
         type: String,
