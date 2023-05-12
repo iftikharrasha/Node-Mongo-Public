@@ -114,16 +114,16 @@ const userLogin = async (req, res, next) => {
                 message: "Please provide your credentials correctly",
                 target: "client side api calling issue send"
             }
-            res.status(400).send(response);
+            res.send(response);
         }else{
             try{
                 // const user = await userLoginService(emailAddress, password);
                 const user = await findUserByEmail(emailAddress);
                 
                 if (!user) {
-                    res.status(401).send({
+                    res.send({
                         success: false,
-                        status: 401,
+                        status: 400,
                         data: {},
                         signed_in: false,
                         version: 1,
@@ -137,9 +137,9 @@ const userLogin = async (req, res, next) => {
                     const isPasswordValid = user.comparePassword(password, user.password);
 
                     if (!isPasswordValid) {
-                        return res.status(401).send({
+                        return res.send({
                             success: false,
-                            status: 401,
+                            status: 400,
                             data: {},
                             signed_in: false,
                             version: 1,
@@ -150,9 +150,9 @@ const userLogin = async (req, res, next) => {
                             }
                         });
                     }else if (user.status != "active") {
-                        return res.status(401).send({
+                        return res.send({
                             success: false,
-                            status: 401,
+                            status: 400,
                             data: {},
                             signed_in: false,
                             version: 1,
@@ -178,7 +178,7 @@ const userLogin = async (req, res, next) => {
                 }
             } catch (err) {
                 console.log(err);
-                res.status(500).send({
+                res.send({
                     success: false,
                     status: 500,
                     data: null,

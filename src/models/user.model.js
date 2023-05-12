@@ -371,3 +371,4 @@ module.exports = User;
 // 2. When a api is sent with jwt, that jwt needs to be for the person who initiated the api
 // 3. when user is deleted his transaction needs to be deleted too, but he is still on leaderboard!
 // 4. when purchased user version needs to be updated, purchased item needs to be injected in redux store of user profile
+// 5. When a user becomes master his jwt token needs to be updated too to get header options

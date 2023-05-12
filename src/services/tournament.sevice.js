@@ -5,7 +5,7 @@ const excludedMasterFields = '-firstName -lastName -balance -password -dateofBir
 const excludedUserFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -requests -stats -socials -updatedAt -__v';
 
 const getAllTournamentsService = async () => {
-    const tournaments = await Tournament.find({ status: 'active' })
+    const tournaments = await Tournament.find({})  // status: 'active' 
                                         .sort({createdAt: -1})
                                         .populate('masterProfile', excludedMasterFields)
     
@@ -30,8 +30,10 @@ const getLeaderboardsService = async (id) => {
 
 const createTournamentService = async (data) => {
     const tournament = await Tournament.create(data);
-    return tournament;
+    const populatedTournament = await getTournamentDetailsService(tournament._id);
+    return populatedTournament;
 }
+  
 
 const updateTournamentByIdService = async (id, data) => {
     const currentTournament = await Tournament.findById(id);
@@ -42,11 +44,14 @@ const updateTournamentByIdService = async (id, data) => {
         version: currentTournament.version + 1 // increment the version field
     };
 
-    const result = await Tournament.findOneAndUpdate({ _id: id }, updatedTournament, {
+    const tournament = await Tournament.findOneAndUpdate({ _id: id }, updatedTournament, {
       new: true,
       runValidators: false
     });
-    return result;
+
+    
+    const populatedTournament = await getTournamentDetailsService(tournament._id);
+    return populatedTournament;
 }
 
 const deleteTournamentByIdService = async (id) => {

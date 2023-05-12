@@ -230,10 +230,10 @@ const tournamentSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: {
-            values: ["active", "inactive", "blocked"],
+            values: ["active", "pending", "draft", "blocked"],
             message: "{VALUE} is not a valid status!",
         },
-        default: "inactive",
+        default: "draft",
     },
     filter: {
         type: [String],
