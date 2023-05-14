@@ -1,4 +1,4 @@
-const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, addUserToLeaderboardService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, addUserToLeaderboardService, getAllMasterTournamentsService, getAllInternalTournamentsService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
 const { addPurchasedItemToUserService } = require("../services/account.service.js");
@@ -375,6 +375,154 @@ const tournamentRegistration = async (req, res, next) => {
     }
 };
 
+const getAllMasterTournaments = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: [],
+        error: null
+    }
+    try {
+        const clientVersion = parseInt(req.query.version);
+
+        const data = await getAllMasterTournamentsService(req.params.id);
+        const versionData = await getVersionTableService();
+
+        if (data.length > 0) {
+            try {
+                let serverVersion = 0;
+                const tableData = versionData.find( item => item.table === "tournaments");
+                if (tableData && tableData.version) {
+                    serverVersion = tableData.version;
+                }
+
+                if (serverVersion > clientVersion) {
+                    response.data = data;
+                    response.version = serverVersion;
+                }else {
+                    response.status = 304;
+                    response.version = serverVersion;
+                    response.error = {
+                        code: 304,
+                        message: "Client have the latest version",
+                        target: "fetch data from the redux store"
+                    }
+                }
+            } catch (err) {
+                response.data = null;
+                response.success = false;
+                response.status = 500;
+                response.version = serverVersion;
+                response.error = {
+                    code: 500,
+                    message: "An Internal Error Has Occurred!",
+                    target: "approx what the error came from"
+                }
+            }
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "No tournaments found!",
+                target: "database"
+            }
+        }
+    } catch (err) {
+        console.log(err);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred!",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+
+    res.send(response);
+}
+
+const getAllInternalTournaments = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: [],
+        error: null
+    }
+    try {
+        const clientVersion = parseInt(req.query.version);
+
+        const data = await getAllInternalTournamentsService(req.params.id);
+        const versionData = await getVersionTableService();
+
+        if (data.length > 0) {
+            try {
+                let serverVersion = 0;
+                const tableData = versionData.find( item => item.table === "tournaments");
+                if (tableData && tableData.version) {
+                    serverVersion = tableData.version;
+                }
+
+                if (serverVersion > clientVersion) {
+                    response.data = data;
+                    response.version = serverVersion;
+                }else {
+                    response.status = 304;
+                    response.version = serverVersion;
+                    response.error = {
+                        code: 304,
+                        message: "Client have the latest version",
+                        target: "fetch data from the redux store"
+                    }
+                }
+            } catch (err) {
+                response.data = null;
+                response.success = false;
+                response.status = 500;
+                response.version = serverVersion;
+                response.error = {
+                    code: 500,
+                    message: "An Internal Error Has Occurred!",
+                    target: "approx what the error came from"
+                }
+            }
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "No tournaments found!",
+                target: "database"
+            }
+        }
+    } catch (err) {
+        console.log(err);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred!",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+
+    res.send(response);
+}
+
 module.exports = {
     getAllTournaments,
     getTournamentDetails,
@@ -382,5 +530,7 @@ module.exports = {
     deleteTournamentDetails,
     addANewTournament,
     getLeaderboards,
-    tournamentRegistration
+    tournamentRegistration,
+    getAllMasterTournaments,
+    getAllInternalTournaments
 }

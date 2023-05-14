@@ -5,7 +5,7 @@ const excludedMasterFields = '-firstName -lastName -balance -password -dateofBir
 const excludedUserFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -requests -stats -socials -updatedAt -__v';
 
 const getAllTournamentsService = async () => {
-    const tournaments = await Tournament.find({})  // status: 'active' 
+    const tournaments = await Tournament.find({ status: 'active' })
                                         .sort({createdAt: -1})
                                         .populate('masterProfile', excludedMasterFields)
     
@@ -33,7 +33,6 @@ const createTournamentService = async (data) => {
     const populatedTournament = await getTournamentDetailsService(tournament._id);
     return populatedTournament;
 }
-  
 
 const updateTournamentByIdService = async (id, data) => {
     const currentTournament = await Tournament.findById(id);
@@ -83,6 +82,24 @@ const addUserToLeaderboardService = async (tId, uId) => {
     }
 };
 
+//master
+const getAllMasterTournamentsService = async (id) => {
+    const tournaments = await Tournament.find({ 'masterProfile': id }) 
+                                        .sort({createdAt: -1})
+                                        .populate('masterProfile', excludedMasterFields)
+    
+    return tournaments;
+}
+
+//internal
+const getAllInternalTournamentsService = async (id) => {
+    const tournaments = await Tournament.find({}) 
+                                        .sort({createdAt: -1})
+                                        .populate('masterProfile', excludedMasterFields)
+    
+    return tournaments;
+}
+
 module.exports = {
     createTournamentService,
     getAllTournamentsService,
@@ -92,6 +109,8 @@ module.exports = {
     deleteTournamentLeaderboardByIdService,
     getLeaderboardsService,
     addUserToLeaderboardService,
+    getAllMasterTournamentsService,
+    getAllInternalTournamentsService
 }
 
 //check if user already registered?

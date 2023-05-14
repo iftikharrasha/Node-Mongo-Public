@@ -8,7 +8,7 @@ const validateParams = require("../../middlewares/validateParams");
 const viewCount = require('../../middlewares/viewCount');
 
 // write js documentation
-// base route: /api/v1/tournaments/id
+// base route: /api/v1/tournaments
 
 router
 .route('/')
@@ -29,5 +29,13 @@ router
 router
 .route('/registration/:id')
 .post(authentication, validateParams, tournamentControllers.tournamentRegistration)
+
+router
+.route('/master/:id')
+.get(validateVersion, validateParams, tournamentControllers.getAllMasterTournaments)
+
+router
+.route('/internal/:id')
+.get(validateVersion, validateParams, tournamentControllers.getAllInternalTournaments)
 
 module.exports = router;

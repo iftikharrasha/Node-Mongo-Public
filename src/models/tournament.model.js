@@ -230,7 +230,7 @@ const tournamentSchema = new mongoose.Schema({
     status: {
         type: String,
         enum: {
-            values: ["active", "pending", "draft", "blocked"],
+            values: [ "draft", "revision", "active", "pending", "blocked"],
             message: "{VALUE} is not a valid status!",
         },
         default: "draft",
@@ -442,3 +442,4 @@ module.exports = Tournament;
 // tournamentCreated -> createdAt
 // tournamentIcon
 // percentage
+// joined 
