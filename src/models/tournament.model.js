@@ -336,7 +336,10 @@ const tournamentSchema = new mongoose.Schema({
         type: ObjectId, 
         ref: "User" 
     },
-    // leaderboards: [{ type: ObjectId, ref: "User" }],
+    leaderboards: [{ 
+        type: ObjectId, 
+        ref: "User" 
+    }],
     completionPercentage: {
       type: Number,
       default: 0
@@ -440,6 +443,7 @@ module.exports = Tournament;
 // gameType -> category
 // categories -> filter
 // tournamentCreated -> createdAt
-// tournamentIcon
-// percentage
+// tournamentIcon == category
+// percentage break down in 8 stage
 // joined 
+// getAllInternalTournamentsService of admin check his id if admin or not before returning data

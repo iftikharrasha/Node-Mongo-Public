@@ -53,6 +53,28 @@ const updateTournamentByIdService = async (id, data) => {
     return populatedTournament;
 }
 
+const addUserToTournamentObjectLeaderboard = async (tId, uId) => {
+    //pushing user id inside the tournament leaderboard
+    const currentTournament = await Tournament.findOne({ _id: tId });
+
+    if(currentTournament){
+        if (currentTournament.leaderboards.indexOf(uId) !== -1) {
+            return false
+        } else {
+            const result = await Tournament.findOneAndUpdate(
+                { _id: currentTournament._id },
+                {  $push: { "leaderboards": uId } },
+                { new: true }
+            );
+            
+            console.log(result);
+            return result;
+        }
+    }else{
+        return false
+    }
+}
+
 const deleteTournamentByIdService = async (id) => {
     const result = await Tournament.findByIdAndDelete({ _id: id });
     return result;
@@ -110,7 +132,8 @@ module.exports = {
     getLeaderboardsService,
     addUserToLeaderboardService,
     getAllMasterTournamentsService,
-    getAllInternalTournamentsService
+    getAllInternalTournamentsService,
+    addUserToTournamentObjectLeaderboard
 }
 
 //check if user already registered?

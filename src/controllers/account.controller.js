@@ -296,6 +296,7 @@ const updateProfileById = async (req, res, next) => {
             return res.send(response);
         }
 
+        response.data = result;
         response.version = result.version;
         response.message = "Profile updated successfully";
 

@@ -1,7 +1,7 @@
-const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, addUserToLeaderboardService, getAllMasterTournamentsService, getAllInternalTournamentsService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, getAllMasterTournamentsService, getAllInternalTournamentsService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
-const { getVersionTableService } = require("../services/versionTable.service.js");
 const { addPurchasedItemToUserService } = require("../services/account.service.js");
+const { getVersionTableService } = require("../services/versionTable.service.js");
 
 const getAllTournaments = async (req, res, next) => {
     let response = {
@@ -312,30 +312,42 @@ const tournamentRegistration = async (req, res, next) => {
         if(purchased) {
             const transaction = await addPurchaseToTransactionsService(uId, purchased._id.toString());
             if(transaction){
-                const result = await addUserToLeaderboardService(tId, uId);
-                if(result){
-                    const purchaseItem = await addPurchasedItemToUserService(tId, uId);
+                const tournament = await addUserToTournamentObjectLeaderboard(tId, uId);
+                if(tournament){
+                    const result = await addUserToLeaderboardService(tId, uId);
+                    if(result){
+                        const purchaseItem = await addPurchasedItemToUserService(tId, uId);
 
-                    if(purchaseItem){
-                        response.data = result;
-                        response.message = "User registered successfully";
+                        if(purchaseItem){
+                            response.data = result;
+                            response.message = "User registered successfully";
+                        }else{
+                            response.success = false;
+                            response.status = 400;
+                            response.message = "Problem adding purchase item to user object";
+                            response.error = {
+                                code: 400,
+                                message: "User is already registered",
+                                target: "client side api calling issue"
+                            }
+                        }
                     }else{
                         response.success = false;
                         response.status = 400;
-                        response.message = "Problem adding purchase item to user object";
+                        response.message = "Problem adding user to leaderboard";
                         response.error = {
                             code: 400,
-                            message: "User is already registered",
+                            message: "Problem adding user to leaderboard",
                             target: "client side api calling issue"
                         }
                     }
                 }else{
                     response.success = false;
                     response.status = 400;
-                    response.message = "Problem adding user to leaderboard";
+                    response.message = "Problem adding user to tournamnet leaderboard";
                     response.error = {
                         code: 400,
-                        message: "Problem adding user to leaderboard",
+                        message: "Problem adding user to tournament leaderboard",
                         target: "client side api calling issue"
                     }
                 }
