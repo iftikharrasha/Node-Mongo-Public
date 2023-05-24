@@ -1,5 +1,7 @@
 const User = require("../models/user.model");
 
+const excludedUserFields = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -stats -socials -updatedAt -__v';
+
 const userSignupService = async (data) => {
     const user = await User.create(data);
     return user;
@@ -55,11 +57,26 @@ const addPurchasedItemToUserService = async (tId, uId) => {
     }
 };
 
+//internal
+const getUsersListService = async (id) => {
+    const users = await User.find({ _id: { $ne: id } }) 
+                                .sort({createdAt: -1})
+                                .select(excludedUserFields) // Exclude the 'password' field
+                                // .populate({
+                                //     path: 'purchasedItems.tournaments',
+                                //     select: excludedMasterFields,
+                                //     match: { _id: { $ne: id } } //we get users without the admin
+                                // });
+    
+    return users;
+}
+
 module.exports = {
     userSignupService,
     findUserByEmail,
     findUserById,
     updateProfileByIdService,
     deleteProfileByIdService,
-    addPurchasedItemToUserService
+    addPurchasedItemToUserService,
+    getUsersListService
 }

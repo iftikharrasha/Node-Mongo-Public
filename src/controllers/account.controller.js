@@ -1,7 +1,8 @@
 const _ = require('lodash');
 const { generateToken, generateRefreshToken } = require("../utils/token");
-const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService } = require("../services/account.service");
+const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService } = require("../services/account.service");
 const { deleteTransactionByIdService } = require('../services/wallet.service');
+const { getVersionTableService } = require('../services/versionTable.service');
 
 const userSignup = async (req, res) => {
     let response = {
@@ -363,10 +364,85 @@ const deleteProfileById = async (req, res, next) => {
     }
 };
 
+const getUsersList = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: [],
+        error: null
+    }
+    try {
+        const clientVersion = parseInt(req.query.version);
+
+        const data = await getUsersListService(req.params.id);
+        const versionData = await getVersionTableService();
+
+        if (data.length > 0) {
+            try {
+                let serverVersion = 0;
+                const tableData = versionData.find( item => item.table === "users");
+                if (tableData && tableData.version) {
+                    serverVersion = tableData.version;
+                }
+
+                if (serverVersion > clientVersion) {
+                    response.data = data;
+                    response.version = serverVersion;
+                }else {
+                    response.status = 304;
+                    response.version = serverVersion;
+                    response.error = {
+                        code: 304,
+                        message: "Client have the latest version",
+                        target: "fetch data from the redux store"
+                    }
+                }
+            } catch (err) {
+                response.data = null;
+                response.success = false;
+                response.status = 500;
+                response.version = serverVersion;
+                response.error = {
+                    code: 500,
+                    message: "An Internal Error Has Occurred!",
+                    target: "approx what the error came from"
+                }
+            }
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "No users found!",
+                target: "database"
+            }
+        }
+    } catch (err) {
+        console.log(err);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred!",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+
+    res.send(response);
+}
+
 module.exports = {
     userSignup,
     userLogin,
     getUserProfile,
     updateProfileById,
     deleteProfileById,
+    getUsersList,
 }

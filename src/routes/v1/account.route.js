@@ -22,5 +22,10 @@ router
 .patch(authentication, authorization("user", "admin"), validateParams, accountControllers.updateProfileById)
 .delete(authentication, authorization("admin"), validateParams, accountControllers.deleteProfileById)
 
+//internal routes
+router
+.route('/list/:id')
+.get(authentication, authorization("admin"), validateVersion, validateParams, accountControllers.getUsersList)
+
 
 module.exports = router;
