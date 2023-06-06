@@ -1,7 +1,6 @@
 const Chatroom = require("../models/chatroom.model");
 
 const getChatroomMessagesByRoomId = async (chatRoomId) => {
-    console.log(chatRoomId)
     const messages = await Chatroom.find({ roomId: chatRoomId }).limit(25);
     return messages;
 }

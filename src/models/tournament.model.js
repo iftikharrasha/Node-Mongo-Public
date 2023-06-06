@@ -343,7 +343,11 @@ const tournamentSchema = new mongoose.Schema({
     completionPercentage: {
       type: Number,
       default: 0
-    }
+    },
+    tournamentStage: {
+        type: Number,
+        default: 1,
+    },
 }, { timestamps: true });
 
 tournamentSchema.pre("save", async function (next) {
