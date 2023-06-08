@@ -1,4 +1,4 @@
-const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, getAllMasterTournamentsService, getAllInternalTournamentsService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
 const { addPurchasedItemToUserService } = require("../services/account.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
@@ -535,6 +535,61 @@ const getAllInternalTournaments = async (req, res, next) => {
     res.send(response);
 }
 
+const addNewFile = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        version: 1,
+        data: {},
+        error: null,
+        message: "Success",
+    }
+
+    const { Bucket, Key } = req.settings || {};
+    const imageUrl = Bucket && Key ? `https://${Bucket}.s3.amazonaws.com/${Key}` : null;
+    // https://e24reactor-s3-bucket.s3.amazonaws.com/images/tournaments/uuid-orginalname.png
+
+    try {
+        if(req.status === 200 && imageUrl){
+            try {
+                const tid =  req.params.id;
+                const result = await addTournamentThumbnailService(tid, imageUrl);
+                // console.log(result);
+
+                response.data = {
+                    imageUrl: imageUrl
+                };
+                response.message = "Tournament Image uploaded successfully";
+                res.send(response);
+            } catch (error) {
+                
+            }
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.message = req.err;
+            response.error = {
+                code: 400,
+                message: req.err || "Unknown error",
+                target: "client side api calling issue"
+            }
+
+            res.send(response);
+        }
+    } catch (error) {
+        response.success = false;
+        response.status = 400;
+        response.message = req.err;
+        response.error = {
+            code: 400,
+            message: req.err || error.message,
+            target: "client side api calling issue"
+        }
+
+        res.send(response);
+    }
+};
+
 module.exports = {
     getAllTournaments,
     getTournamentDetails,
@@ -544,5 +599,6 @@ module.exports = {
     getLeaderboards,
     tournamentRegistration,
     getAllMasterTournaments,
-    getAllInternalTournaments
+    getAllInternalTournaments,
+    addNewFile
 }

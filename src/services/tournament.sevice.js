@@ -113,6 +113,14 @@ const getAllMasterTournamentsService = async (id) => {
     return tournaments;
 }
 
+const addTournamentThumbnailService = async (id, url) => {
+    const result = await Tournament.findOneAndUpdate({ _id: id }, {tournamentThumbnail: url}, {
+        new: true,
+        runValidators: false
+    });
+    return result;
+}
+
 //internal
 const getAllInternalTournamentsService = async (id) => {
     const tournaments = await Tournament.find({}) 
@@ -133,7 +141,8 @@ module.exports = {
     addUserToLeaderboardService,
     getAllMasterTournamentsService,
     getAllInternalTournamentsService,
-    addUserToTournamentObjectLeaderboard
+    addUserToTournamentObjectLeaderboard,
+    addTournamentThumbnailService
 }
 
 //check if user already registered?
