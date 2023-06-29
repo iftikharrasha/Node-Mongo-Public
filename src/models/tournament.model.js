@@ -3,6 +3,7 @@ const { ObjectId } = mongoose.Schema.Types;
 const validator = require("validator");
 const Version = require('./version.model');
 const Leaderboard = require('./leaderboard.model');
+const cache = require("../utils/cacheInstance");
 
 const pubgMaps = ['erangel', 'nusa', "livik", 'miramar', 'sanhok', 'vikendi', "karakin", "NA"];
 const freefireMaps = ['bermuda', 'purgatory', 'kalahari', 'alpine', 'nexterra', "NA"];
@@ -399,8 +400,19 @@ tournamentSchema.pre('findOneAndUpdate', async function (next) {
     // Update version table
     const versionTable = await Version.findOne({ table: 'tournaments' });
     if (versionTable) {
-      const updatedVersion = versionTable.version + 1;
-      await versionTable.updateOne({ version: updatedVersion });
+        const updatedVersion = versionTable.version + 1;
+        await versionTable.updateOne({ version: updatedVersion });
+
+        // Invalidate the cache for tournaments
+        const key = `/api/v1/tournaments?version=${versionTable.version}`;
+        // // Invalidate multiple cache keys
+        // const keys = [
+        //     `/api/v1/tournaments?version=${versionTable.version}`,
+        //     '/api/v1/other-endpoint',
+        //     // Add more keys here
+        // ];
+        console.log('Invalidating', key);
+        cache.del(key); 
     } else {
       await Version.create({ table: 'tournaments', version: 1 });
     }

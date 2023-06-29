@@ -1,9 +1,13 @@
-const { ObjectId } = require("mongodb");
 const { getLandingStaticsService, createStaticService } = require("../services/statics.service");
 const { getVersionTableService } = require("../services/versionTable.service");
 
 const getLandingStatics = async (req, res, next) => {
     try{
+        // Check if the response is already cached
+        if (res.headersSent) {
+          return; // Skip processing if response is already sent
+        }
+
         let response = {
             success: true,
             status: 200,

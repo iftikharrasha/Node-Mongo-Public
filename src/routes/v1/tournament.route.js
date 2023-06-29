@@ -6,13 +6,14 @@ const authorization = require("../../middlewares/authorization");
 const validateVersion = require("../../middlewares/validateVersion");
 const validateParams = require("../../middlewares/validateParams");
 const viewCount = require('../../middlewares/viewCount');
+const cache = require("../../middlewares/caching");
 
 // write js documentation
 // base route: /api/v1/tournaments
 
 router
 .route('/')
-.get(validateVersion, tournamentControllers.getAllTournaments)
+.get(validateVersion, cache(300), tournamentControllers.getAllTournaments)
 .post(authentication, authorization("master", "admin"), tournamentControllers.addANewTournament)
 
 router
