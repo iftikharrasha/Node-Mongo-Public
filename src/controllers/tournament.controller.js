@@ -1,4 +1,4 @@
-const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
 const { addPurchasedItemToUserService } = require("../services/account.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
@@ -291,6 +291,95 @@ const getLeaderboards = async (req, res, next) => {
         }
     }
     res.send(response);
+};
+
+const getCredentials = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        version: 1,
+        data: {},
+        error: null,
+    }
+    try {
+        const data = await getCredentialsService(req.params.id);
+
+        if(!data){
+            response.success = false;
+            response.status = 500;
+            response.error = { 
+                code: 500, 
+                message: "No tournament found",
+                target: "approx what the error came from", 
+            }
+        }else{
+            if(!data.roomId || !data.roomPassword){
+                response.success = false;
+                response.status = 400;
+                response.error = {
+                    code: 400,
+                    message: "Credentials Not Announced",
+                    target: "database"
+                }
+            }else{
+                response.data = data;
+            }
+        }
+
+    } catch (error) {
+        response.success = false;
+        response.status = 500;
+        response.error = { 
+            code: 500, 
+            message: "An Internal Error Has Occurred!",
+            target: "approx what the error came from", 
+        }
+    }
+    res.send(response);
+};
+
+const updateCredentials = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null
+    }
+
+    try {
+        const { id } = req.params;
+    
+        const result = await updateTournamentByIdService(id, req.body);
+    
+        if (!result) {
+            response.success = false;
+            response.status = 400;
+            response.message = "Data is not updated";
+            response.error = {
+                code: 400,
+                message: error.message,
+                target: "client side api calling issue"
+            }
+
+            return res.send(response);
+        }
+        response.data = result;
+        response.message = "Credentials updated successfully";
+        res.send(response);
+    } catch (error) {
+        response.success = false;
+        response.status = 400;
+        response.message = "Data is not updated";
+        response.error = {
+            code: 400,
+            message: error.message,
+            target: "client side api calling issue"
+        }
+
+        res.send(response);
+    }
 };
 
 const tournamentRegistration = async (req, res, next) => {
@@ -597,6 +686,8 @@ module.exports = {
     deleteTournamentDetails,
     addANewTournament,
     getLeaderboards,
+    getCredentials,
+    updateCredentials,
     tournamentRegistration,
     getAllMasterTournaments,
     getAllInternalTournaments,

@@ -27,12 +27,21 @@ router
 .get(validateVersion, validateParams, tournamentControllers.getLeaderboards)
 
 router
+.route('/credentials/:id')
+.get(authentication, validateParams, tournamentControllers.getCredentials)
+.patch(authentication, authorization("master", "admin"), validateParams, tournamentControllers.updateCredentials)
+
+router
 .route('/registration/:id')
 .post(authentication, validateParams, tournamentControllers.tournamentRegistration)
 
 router
 .route('/master/:id')
 .get(validateVersion, validateParams, tournamentControllers.getAllMasterTournaments)
+
+// router
+// .route('/master/:id/credentials/:tid')
+// .post(validateVersion, validateParams, tournamentControllers.getAllMasterTournaments)
 
 router
 .route('/internal/:id')

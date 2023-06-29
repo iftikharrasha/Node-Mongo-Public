@@ -1,8 +1,8 @@
 const Tournament = require('../models/tournament.model')
 const Leaderboard = require('../models/leaderboard.model')
 
-const excludedMasterFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -requests -stats -socials -updatedAt -__v';
-const excludedUserFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -requests -stats -socials -updatedAt -__v';
+const excludedMasterFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -stats -socials -updatedAt -__v';
+const excludedUserFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -socials -updatedAt -__v';
 
 const getAllTournamentsService = async () => {
     const tournaments = await Tournament.find({ status: 'active' })
@@ -26,6 +26,12 @@ const getLeaderboardsService = async (id) => {
                                             match: { status: { $ne: 'blocked' } } //we get users who are not blocked
                                         });
     return leaderboard;
+}
+
+const getCredentialsService = async (id) => {
+    const tournament = await Tournament.findOne({ _id: id })
+    const credentials = tournament.credentials;
+    return credentials;
 }
 
 const createTournamentService = async (data) => {
@@ -138,6 +144,7 @@ module.exports = {
     deleteTournamentByIdService,
     deleteTournamentLeaderboardByIdService,
     getLeaderboardsService,
+    getCredentialsService,
     addUserToLeaderboardService,
     getAllMasterTournamentsService,
     getAllInternalTournamentsService,
