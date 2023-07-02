@@ -29,7 +29,73 @@ const updateProfileByIdService = async (id, data) => {
       runValidators: true
     });
     return result;
-}
+};
+
+// const updateXp = async (id, newXp) => {
+//     const currentProfile = await User.findOne({ _id: id });
+  
+//     const updatedProfile = {
+//         ...currentProfile.toObject(),
+//         stats: {
+//             ...currentProfile.stats,
+//             totalXp: currentProfile.stats.totalXp + newXp,
+//             currentXP: currentProfile.stats.currentXP + newXp
+//         },
+//         version: currentProfile.version + 1,
+//     };
+  
+//     const result = await User.findOneAndUpdate(
+//       { _id: id },
+//       updatedProfile,
+//       { new: true, runValidators: true }
+//     );
+  
+//     return true;
+// };  
+
+const updateXp = async (id, newXp) => {
+    const currentProfile = await User.findOne({ _id: id });
+  
+    const totalXp = currentProfile.stats.totalXp + newXp;
+    let currentXP = currentProfile.stats.currentXP + newXp;
+    let levelTitle = currentProfile.stats.levelTitle;
+    let currentLevel = currentProfile.stats.currentLevel;
+    let nextLevelRequiredXP = currentProfile.stats.nextLevelRequiredXP;
+  
+    if (totalXp >= 140 && totalXp < 500) {
+      levelTitle = "rockie";
+      currentLevel = 2;
+      nextLevelRequiredXP = 500 - currentXP;
+      currentXP = totalXp - 140;
+    } else if (totalXp >= 500 && totalXp < 1000) {
+      levelTitle = "pro";
+      currentLevel = 3;
+      nextLevelRequiredXP = 1000 - currentXP;
+      currentXP = totalXp - 500;
+    }
+  
+    const updatedProfile = {
+      ...currentProfile.toObject(),
+      stats: {
+        ...currentProfile.stats,
+        totalXp,
+        currentXP,
+        levelTitle,
+        currentLevel,
+        nextLevelRequiredXP,
+      },
+      version: currentProfile.version + 1,
+    };
+  
+    const result = await User.findOneAndUpdate(
+      { _id: id },
+      updatedProfile,
+      { new: true, runValidators: true }
+    );
+  
+    return true;
+  };
+  
 
 const deleteProfileByIdService = async (id) => {
     const result = await User.findByIdAndDelete({ _id: id });
@@ -70,6 +136,7 @@ const getUsersListService = async (id) => {
     
     return users;
 }
+  
 
 module.exports = {
     userSignupService,
@@ -78,5 +145,6 @@ module.exports = {
     updateProfileByIdService,
     deleteProfileByIdService,
     addPurchasedItemToUserService,
-    getUsersListService
+    getUsersListService,
+    updateXp
 }

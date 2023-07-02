@@ -1,6 +1,6 @@
 const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
-const { addPurchasedItemToUserService } = require("../services/account.service.js");
+const { addPurchasedItemToUserService, updateXp } = require("../services/account.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
 
 const getAllTournaments = async (req, res, next) => {
@@ -405,6 +405,7 @@ const tournamentRegistration = async (req, res, next) => {
                 if(tournament){
                     const result = await addUserToLeaderboardService(tId, uId);
                     if(result){
+                        const xpAdd = await updateXp(uId, 100); //adding xp to the users account
                         const purchaseItem = await addPurchasedItemToUserService(tId, uId);
 
                         if(purchaseItem){

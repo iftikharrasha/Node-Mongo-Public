@@ -67,7 +67,7 @@ const purchaseSchema = new mongoose.Schema({
             values: ["approved", "pending", "incoming", "cancelled"],
             message: "{VALUE} is not a valid status",
         },
-        default: "pending",
+        default: "approved",
     },
     description: { 
         type: String,

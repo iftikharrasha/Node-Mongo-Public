@@ -73,7 +73,7 @@ const addUserToTournamentObjectLeaderboard = async (tId, uId) => {
                 { new: true }
             );
             
-            console.log(result);
+            // console.log(result);
             return result;
         }
     }else{
@@ -94,7 +94,7 @@ const deleteTournamentLeaderboardByIdService = async (id) => {
 const addUserToLeaderboardService = async (tId, uId) => {
     //pushing user id inside separate leaderboard
     const currentLeaderboard = await Leaderboard.findOne({ tId: tId });
-    console.log("currentLeaderboard", currentLeaderboard)
+    // console.log("currentLeaderboard", currentLeaderboard)
 
     if (currentLeaderboard.leaderboards.indexOf(uId) !== -1) {
         return false
@@ -104,7 +104,7 @@ const addUserToLeaderboardService = async (tId, uId) => {
             { $push: { leaderboards: { $each: [uId], $position: 0 } }, $inc: { version: 1 } },
             { new: true }
         );
-        console.log("result", result)
+        // console.log("result", result)
         
         return result;
     }
