@@ -153,7 +153,7 @@ async function initiateSocket(app, port) {
             // Add a user to a room
             socket.on('join_room', async (data) => {
                 // Data sent from client when join_room event emitted
-                const { userId, roomId, senderName, senderPhoto, stats } = data;
+                const { userId, roomId, senderName, senderPhoto, stats, masterUsername, masterPhoto } = data;
                 chatRoomId = roomId;
 
                 socket.join(chatRoomId); // Join the user to a socket room
@@ -165,8 +165,8 @@ async function initiateSocket(app, port) {
                 // Send message to all users currently in the room, apart from the user that just joined
                 socket.broadcast.to(chatRoomId).emit('receive_message', {
                     message: `${senderName} has joined the room`,
-                    senderName: CHAT_BOT,
-                    senderPhoto: CHAT_BOT_IMAGE,
+                    senderName: masterUsername,
+                    senderPhoto: masterPhoto,
                     read: false,
                     createdAt,
                     sound: "bot"
@@ -175,8 +175,8 @@ async function initiateSocket(app, port) {
                 // Send welcome msg to user that just joined chat only
                 socket.emit('receive_message', {
                     message: `Welcome ${senderName}`,
-                    senderName: CHAT_BOT,
-                    senderPhoto: CHAT_BOT_IMAGE,
+                    senderName: masterUsername,
+                    senderPhoto: masterPhoto,
                     read: false,
                     createdAt,
                     sound: "bot"
