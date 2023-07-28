@@ -347,7 +347,7 @@ const tournamentSchema = new mongoose.Schema({
     },
     tournamentStage: {
         type: Number,
-        default: 1,
+        default: 0,
     },
 }, { timestamps: true });
 
@@ -449,7 +449,6 @@ tournamentSchema.methods.calculateCompletionPercentage = function() {
     const percentage = Math.round(completedFields / requiredFields.length * 100);
     this.completionPercentage = percentage;
 };
- 
 
 const Tournament = mongoose.model("Tournament", tournamentSchema);
 module.exports = Tournament;

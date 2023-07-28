@@ -8,13 +8,46 @@ const getAllTournamentsService = async () => {
     const tournaments = await Tournament.find({ status: 'active' })
                                         .sort({createdAt: -1})
                                         .populate('masterProfile', excludedMasterFields)
+                                        .lean(); // Make sure to use 'lean()' to enable virtuals
+
+    // Manually add the tournamentStatus to each tournament object
+    const tournamentsWithStatus = tournaments.map(tournament => {
+        return {
+            ...tournament,
+            tournamentStage: calculateTournamentStatus(tournament.dates),
+        };
+      });
     
-    return tournaments;
+      return tournamentsWithStatus;
 }
+
+// Helper function to calculate the tournament status based on dates
+const calculateTournamentStatus = (dates) => {
+    const currentDate = new Date();
+
+    if (currentDate >= dates.registrationStart && currentDate < dates.registrationEnd) {
+        return 1; // Registration in progress
+    } else if (currentDate >= dates.registrationEnd && currentDate < dates.tournamentStart) {
+        return 2; // Lineup in progress
+    } else if (currentDate >= dates.tournamentStart && currentDate < dates.tournamentEnd) {
+        return 3; // Tournament in progress
+    } else if (currentDate >= dates.tournamentEnd) {
+        return 4; // Tournament finished
+    }else{
+        return 0;
+    }
+
+}
+// tournamentSchema.virtual('tournamentStatus').get(function () {
+// });
 
 const getTournamentDetailsService = async (id) => {
     const tournament = await Tournament.findOne({ _id: id })
                                        .populate('masterProfile', excludedMasterFields)
+                                       .lean();
+                  
+    // Manually add the tournamentStatus to the response
+    tournament.tournamentStatus = tournament.dates.tournamentStatus;
     return tournament;
 }
 
@@ -156,3 +189,4 @@ module.exports = {
 //leaderboard version table
 //what if user changed his profile pic, will version table be changed?
 // when user registeres to the tournament that tournament needs to go inside purchaseItem of user
+//send tournament status 1 2 3
