@@ -1,5 +1,7 @@
 const Tournament = require('../models/tournament.model')
 const Leaderboard = require('../models/leaderboard.model')
+const Bracket = require('../models/bracket.model')
+const moment = require('moment');
 
 const excludedMasterFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -stats -socials -updatedAt -__v';
 const excludedUserFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -socials -updatedAt -__v';
@@ -36,7 +38,6 @@ const calculateTournamentStatus = (dates) => {
     }else{
         return 0;
     }
-
 }
 // tournamentSchema.virtual('tournamentStatus').get(function () {
 // });
@@ -169,12 +170,96 @@ const getAllInternalTournamentsService = async (id) => {
     return tournaments;
 }
 
+const updateTournamentApprovalService = async (id) => {
+    const currentTournament = await Tournament.findById(id);
+    let updatedTournament = currentTournament;
+
+    if(currentTournament.settings.competitionMode === 'knockout'){
+        if(currentTournament.bracket.length === 0){
+            const generatedBracket = await bracketGernerate(currentTournament.settings.maxParticipitant)
+
+            const result = await bracketEntryService(currentTournament, generatedBracket)
+            console.log(result)
+
+            updatedTournament = {
+                ...currentTournament.toObject(),
+                status: "active",
+                version: currentTournament.version + 1, // increment the version field
+                bracket:  currentTournament._id
+            };
+        }
+    }else{
+        //here we create the leaderboard
+    }
+
+    const tournament = await Tournament.findOneAndUpdate({ _id: id }, updatedTournament, {
+      new: true,
+      runValidators: false
+    });
+    
+    const populatedTournament = await getTournamentDetailsService(tournament._id);
+    return populatedTournament;
+}
+
+const bracketGernerate = async (particaipants) => {
+    const bracket = [];
+    let rp = particaipants;
+    const totalMatch = particaipants - 1;
+    const rounds = Math.log2(particaipants);
+    let offset = particaipants/2;
+    let matchId = 0;
+
+    const date = new Date();
+    const todayFull = moment(date);
+  
+    for(let j = 1; j <= rounds; j++) {
+      for (let i = 1; i <= (rp/2); i++) {
+        const nextMatchId = i > (rp/2) ? null :
+                            i % 2 === 0 ?
+                            (offset) : (offset+1);
+                      
+        
+        matchId = matchId + 1;
+        const match = {
+          id: matchId,
+          nextMatchId: rp === 2 || i === totalMatch ? null : nextMatchId,
+          name: rp === 2 || i === totalMatch ? `Final Match` : `Round ${j} - Match ${i}`,
+          tournamentRoundText: `${j}`,
+          startTime: `${todayFull.add(2, 'hours').format('llll')}`, 
+          state: 'SCHEDULED',
+          participants: [],
+        };
+        offset = nextMatchId;
+        bracket.push(match);
+      }
+      rp = rp/2;
+    }
+  
+    return bracket;
+};
+
+const bracketEntryService = async (tournament, bracketData) => {
+    try {
+        const bracket = new Bracket({ 
+            tId: tournament._id, 
+            tName: tournament.tournamentName,
+            matches: bracketData
+        });
+        await bracket.save();
+
+        return bracket;
+    } catch (error) {
+        console.log(error);
+    }
+};
+
 module.exports = {
     createTournamentService,
     getAllTournamentsService,
     getTournamentDetailsService,
     updateTournamentByIdService,
     deleteTournamentByIdService,
+    updateTournamentApprovalService,
     deleteTournamentLeaderboardByIdService,
     getLeaderboardsService,
     getCredentialsService,

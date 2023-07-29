@@ -1,4 +1,4 @@
-const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
 const { addPurchasedItemToUserService, updateXp } = require("../services/account.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
@@ -169,6 +169,50 @@ const updateTournamentDetails = async (req, res, next) => {
         const { id } = req.params;
     
         const result = await updateTournamentByIdService(id, req.body);
+    
+        if (!result) {
+            response.success = false;
+            response.status = 400;
+            response.message = "Data is not updated";
+            response.error = {
+                code: 400,
+                message: error.message,
+                target: "client side api calling issue"
+            }
+
+            return res.send(response);
+        }
+        response.version = result.version;
+        response.data = result;
+        response.message = "Tournament updated successfully";
+        res.send(response);
+    } catch (error) {
+        response.success = false;
+        response.status = 400;
+        response.message = "Data is not updated";
+        response.error = {
+            code: 400,
+            message: error.message,
+            target: "client side api calling issue"
+        }
+
+        res.send(response);
+    }
+};
+
+const updateTournamentApproval = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: [],
+        error: null
+    }
+
+    try {
+        const { id } = req.params;
+        const result = await updateTournamentApprovalService(id);
     
         if (!result) {
             response.success = false;
@@ -685,6 +729,7 @@ module.exports = {
     getTournamentDetails,
     updateTournamentDetails,
     deleteTournamentDetails,
+    updateTournamentApproval,
     addANewTournament,
     getLeaderboards,
     getCredentials,

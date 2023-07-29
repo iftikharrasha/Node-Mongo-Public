@@ -48,4 +48,8 @@ router
 .route('/internal/:id')
 .get(validateVersion, validateParams, tournamentControllers.getAllInternalTournaments)
 
+router
+.route('/approve/:id')
+.post(authentication, authorization("admin"), validateParams, tournamentControllers.updateTournamentApproval)
+
 module.exports = router;

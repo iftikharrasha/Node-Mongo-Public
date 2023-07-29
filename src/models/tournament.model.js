@@ -27,10 +27,18 @@ const settingsSchema = new mongoose.Schema({
     mode: {
         type: String,
         enum: {
-            values: ["solo", "team", "open"],
+            values: ["solo", "team"],
             message: "{VALUE} is not a valid mode!",
         },
         default: "solo"
+    },
+    competitionMode: {
+        type: String,
+        enum: {
+            values: ["ladder", "knockout"],
+            message: "{VALUE} is not a valid mode!",
+        },
+        default: "ladder"
     },
     maxParticipitant: {
         type: Number,
@@ -340,6 +348,10 @@ const tournamentSchema = new mongoose.Schema({
     leaderboards: [{ 
         type: ObjectId, 
         ref: "User" 
+    }],
+    bracket: [{ 
+        type: ObjectId, 
+        ref: "Bracket" 
     }],
     completionPercentage: {
       type: Number,
