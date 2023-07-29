@@ -79,28 +79,28 @@ const bracketSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // //everytime a tournament added should we update the version table of bulk leaderboards?
-// bracketSchema.pre("save", async function (next) {
-//   const versionTable = await Version.findOne({ table: 'leaderboards' });
+bracketSchema.pre("save", async function (next) {
+  const versionTable = await Version.findOne({ table: 'brackets' });
 
-//   if (versionTable) {
-//       versionTable.version = versionTable.version + 1;
-//       await versionTable.save();
-//   } else {
-//       await Version.create({ table: 'leaderboards', version: 1 });
-//   }
+  if (versionTable) {
+      versionTable.version = versionTable.version + 1;
+      await versionTable.save();
+  } else {
+      await Version.create({ table: 'brackets', version: 1 });
+  }
   
-//   next();
-// });
+  next();
+});
 
-// bracketSchema.pre('findOneAndUpdate', async function (next) {
-//   const versionTable = await Version.findOne({ table: 'leaderboards' });
-//   if (versionTable) {
-//     versionTable.version = versionTable.version + 1;
-//     await versionTable.save();
-//   }
+bracketSchema.pre('findOneAndUpdate', async function (next) {
+  const versionTable = await Version.findOne({ table: 'brackets' });
+  if (versionTable) {
+    versionTable.version = versionTable.version + 1;
+    await versionTable.save();
+  }
 
-//   next();
-// });
+  next();
+});
 
 const Bracket = mongoose.model('Bracket', bracketSchema);
 module.exports = Bracket;

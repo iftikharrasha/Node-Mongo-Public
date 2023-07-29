@@ -28,6 +28,10 @@ router
 .get(validateVersion, validateParams, tournamentControllers.getLeaderboards)
 
 router
+.route('/bracket/:id')
+.get(validateVersion, validateParams, tournamentControllers.getBracket)
+
+router
 .route('/credentials/:id')
 .get(authentication, validateParams, tournamentControllers.getCredentials)
 .patch(authentication, authorization("master", "admin"), validateParams, tournamentControllers.updateCredentials)

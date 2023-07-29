@@ -62,6 +62,11 @@ const getLeaderboardsService = async (id) => {
     return leaderboard;
 }
 
+const getBracketService = async (id) => {
+    const bracket = await Bracket.findOne({ tId: id });
+    return bracket;
+}
+
 const getCredentialsService = async (id) => {
     const tournament = await Tournament.findOne({ _id: id })
     const credentials = tournament.credentials;
@@ -262,6 +267,7 @@ module.exports = {
     updateTournamentApprovalService,
     deleteTournamentLeaderboardByIdService,
     getLeaderboardsService,
+    getBracketService,
     getCredentialsService,
     addUserToLeaderboardService,
     getAllMasterTournamentsService,

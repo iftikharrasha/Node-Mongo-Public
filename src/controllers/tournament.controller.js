@@ -1,4 +1,4 @@
-const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
 const { addPurchasedItemToUserService, updateXp } = require("../services/account.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
@@ -308,6 +308,53 @@ const getLeaderboards = async (req, res, next) => {
             response.error = {
                 code: 400,
                 message: "Leaderboards Not found",
+                target: "database"
+            }
+        }else{
+            if (data.version > clientVersion) {
+                response.version = data.version;
+                response.data = data;
+            }else {
+                response.status = 304;
+                response.version = clientVersion;
+                response.error = {
+                    code: 304,
+                    message: "Client have the latest version",
+                    target: "fetch data from the redux store"
+                }
+            }
+        }
+
+    } catch (error) {
+        response.success = false;
+        response.status = 500;
+        response.error = { 
+            code: 500, 
+            message: "An Internal Error Has Occurred!",
+            target: "approx what the error came from", 
+        }
+    }
+    res.send(response);
+};
+
+const getBracket = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        version: 1,
+        data: {},
+        error: null,
+    }
+    try {
+        const clientVersion = parseInt(req.query.version);
+        const data = await getBracketService(req.params.id);
+
+        if(!data){
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "Bracket Not found",
                 target: "database"
             }
         }else{
@@ -732,6 +779,7 @@ module.exports = {
     updateTournamentApproval,
     addANewTournament,
     getLeaderboards,
+    getBracket,
     getCredentials,
     updateCredentials,
     tournamentRegistration,
