@@ -1,4 +1,4 @@
-const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentBracketByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, bookUserToBracketSlotService, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
 const { addPurchasedItemToUserService, updateXp } = require("../services/account.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
@@ -212,7 +212,7 @@ const updateTournamentApproval = async (req, res, next) => {
 
     try {
         const { id } = req.params;
-        const result = await updateTournamentApprovalService(id);
+        const result = await updateTournamentApprovalService(id, req.body);
     
         if (!result) {
             response.success = false;
@@ -258,7 +258,10 @@ const deleteTournamentDetails = async (req, res, next) => {
     
         const result = await deleteTournamentByIdService(id);
         const result2 = await deleteTournamentLeaderboardByIdService(id);
-        // console.log(result2.deletedCount)
+        console.log("competitionMode", result.settings.competitionMode);
+        if(result.settings.competitionMode === 'knockout'){
+            const result3 = await deleteTournamentBracketByIdService(id);
+        }
     
         if (!result) {
             response.success = false;
@@ -494,13 +497,17 @@ const tournamentRegistration = async (req, res, next) => {
             if(transaction){
                 const tournament = await addUserToTournamentObjectLeaderboard(tId, uId);
                 if(tournament){
-                    const result = await addUserToLeaderboardService(tId, uId);
-                    if(result){
+                    const leaderboard = await addUserToLeaderboardService(tId, uId);
+                    if(leaderboard){
+                        if(tournament.settings.competitionMode === "knockout"){
+                            const bracket = await bookUserToBracketSlotService(tId, uId);
+                            console.log("Bracket Push", bracket)
+                        }
                         const xpAdd = await updateXp(uId, 100); //adding xp to the users account
                         const purchaseItem = await addPurchasedItemToUserService(tId, uId);
 
                         if(purchaseItem){
-                            response.data = result;
+                            response.data = leaderboard;
                             response.message = "User registered successfully";
                         }else{
                             response.success = false;

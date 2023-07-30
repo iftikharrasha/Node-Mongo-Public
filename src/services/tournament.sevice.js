@@ -1,6 +1,7 @@
 const Tournament = require('../models/tournament.model')
 const Leaderboard = require('../models/leaderboard.model')
 const Bracket = require('../models/bracket.model')
+const User = require('../models/user.model')
 const moment = require('moment');
 
 const excludedMasterFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -stats -socials -updatedAt -__v';
@@ -130,6 +131,11 @@ const deleteTournamentLeaderboardByIdService = async (id) => {
     return result;
 };
 
+const deleteTournamentBracketByIdService = async (id) => {
+    const result = await Bracket.deleteOne({ tId: id });
+    return result;
+};
+
 const addUserToLeaderboardService = async (tId, uId) => {
     //pushing user id inside separate leaderboard
     const currentLeaderboard = await Leaderboard.findOne({ tId: tId });
@@ -147,6 +153,59 @@ const addUserToLeaderboardService = async (tId, uId) => {
         
         return result;
     }
+};
+
+const bookUserToBracketSlotService = async (tId, uId) => {
+    try {
+        const bracket = await Bracket.findOne({ tId: tId });
+        const matches = bracket.matches;
+
+        // Get the matches of the first round
+        const firstRoundMatches = matches.filter(
+            (match) => match.tournamentRoundText === "1"
+        );
+        
+        // Shuffle the array of matches to randomly select a match for the user
+        const selectedMatch = getRandomMatchWithVacancy(firstRoundMatches);
+
+        if (selectedMatch) {
+            const user = await User.findOne({ _id: uId });
+            const convertedToParticipant = {
+                id: user._id,
+                resultText: null,
+                isWinner: false,
+                status: null,
+                name: user.userName,
+                picture: user.photo
+            }
+
+            // Create a deep copy of the selectedMatch to avoid mutation
+            const modifiedMatch = JSON.parse(JSON.stringify(selectedMatch));
+            console.log("modifiedMatch", modifiedMatch);
+
+            // Add the new participant to the copied match
+            modifiedMatch.participants.push(convertedToParticipant);
+            
+            // Save/update the new entry to the Bracket model
+            const updatedBracket = await Bracket.findOneAndUpdate(
+                { tId: tId, 'matches.id': selectedMatch.id },
+                { $set: { 'matches.$': modifiedMatch } },
+                { new: true }
+            );
+            console.log("updatedBracket", updatedBracket);
+
+            return modifiedMatch;
+        }
+
+        return false;
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+const getRandomMatchWithVacancy = (array) => {
+    const availableMatches = array.filter((match) => match.participants.length < 2);
+    return availableMatches.length > 0 ? availableMatches[Math.floor(Math.random() * availableMatches.length)] : null;
 };
 
 //master
@@ -175,26 +234,32 @@ const getAllInternalTournamentsService = async (id) => {
     return tournaments;
 }
 
-const updateTournamentApprovalService = async (id) => {
+const updateTournamentApprovalService = async (id, data) => {
     const currentTournament = await Tournament.findById(id);
-    let updatedTournament = currentTournament;
+    let updatedTournament = data;
 
     if(currentTournament.settings.competitionMode === 'knockout'){
         if(currentTournament.bracket.length === 0){
             const generatedBracket = await bracketGernerate(currentTournament.settings.maxParticipitant)
 
             const result = await bracketEntryService(currentTournament, generatedBracket)
-            console.log(result)
+            // console.log(result)
 
             updatedTournament = {
                 ...currentTournament.toObject(),
+                ...data,
                 status: "active",
                 version: currentTournament.version + 1, // increment the version field
                 bracket:  currentTournament._id
             };
         }
     }else{
-        //here we create the leaderboard
+        updatedTournament = {
+            ...currentTournament.toObject(),
+            ...data,
+            status: "active",
+            version: currentTournament.version + 1, 
+        };
     }
 
     const tournament = await Tournament.findOneAndUpdate({ _id: id }, updatedTournament, {
@@ -273,7 +338,9 @@ module.exports = {
     getAllMasterTournamentsService,
     getAllInternalTournamentsService,
     addUserToTournamentObjectLeaderboard,
-    addTournamentThumbnailService
+    addTournamentThumbnailService,
+    bookUserToBracketSlotService,
+    deleteTournamentBracketByIdService
 }
 
 //check if user already registered?

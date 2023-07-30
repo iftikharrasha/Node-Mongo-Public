@@ -54,6 +54,6 @@ router
 
 router
 .route('/approve/:id')
-.post(authentication, authorization("admin"), validateParams, tournamentControllers.updateTournamentApproval)
+.patch(authentication, authorization("admin"), validateParams, tournamentControllers.updateTournamentApproval)
 
 module.exports = router;

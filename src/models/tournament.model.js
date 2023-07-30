@@ -9,6 +9,7 @@ const pubgMaps = ['erangel', 'nusa', "livik", 'miramar', 'sanhok', 'vikendi', "k
 const freefireMaps = ['bermuda', 'purgatory', 'kalahari', 'alpine', 'nexterra', "NA"];
 const csgoMaps = ["dust II", "mirage", "overpass", "vertigo", "train", "inferno", "nuke", "ancient", "cache", "NA"];
 const warzoneMaps = ["verdansk", "rebirth island", "NA"];
+const fifaMaps = ["Old Trafford", "santiago narnabue", "NA"];
 
 const settingsSchema = new mongoose.Schema({
     joiningFee: {
@@ -231,7 +232,7 @@ const tournamentSchema = new mongoose.Schema({
     category: {
         type: String,
         enum: {
-            values: ["pubg", "warzone", "freefire", "csgo"],
+            values: ["pubg", "warzone", "freefire", "csgo", "fifa"],
             message: "{VALUE} is not a valid category!",
         },
         required: true
@@ -291,6 +292,8 @@ const tournamentSchema = new mongoose.Schema({
                     return csgoMaps.includes(map);
                 }else if (category === 'warzone') {
                     return warzoneMaps.includes(map);
+                }else if (category === 'fifa') {
+                    return fifaMaps.includes(map);
                 }else {
                     return false;
                 }

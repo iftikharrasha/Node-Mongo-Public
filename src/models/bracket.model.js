@@ -13,7 +13,7 @@ const participantSchema = new mongoose.Schema({
     },
     isWinner: { 
         type: Boolean, 
-        default: false 
+        default: null 
     },
     status: { 
         type: String, 
@@ -27,7 +27,7 @@ const participantSchema = new mongoose.Schema({
         type: String, 
         default: null 
     },
-});
+},{ _id: false });
 
 const matchSchema = new mongoose.Schema({
     id: { 
@@ -59,7 +59,7 @@ const matchSchema = new mongoose.Schema({
         default: null 
     },
     participants: [participantSchema],
-});
+},{ _id: false });
 
 const bracketSchema = new mongoose.Schema({
     tId: {
