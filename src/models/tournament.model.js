@@ -58,6 +58,16 @@ const settingsSchema = new mongoose.Schema({
         default: 1,
         min: 1
     },
+    matches: {
+        type: Number,
+        default: 1,
+        min: 1
+    },
+    currentMatchId: {
+        type: Number,
+        default: 1,
+        min: 1
+    },
     tournamentRules: { 
         type: String, 
         default: null 
@@ -274,6 +284,8 @@ const tournamentSchema = new mongoose.Schema({
             mode: "solo",
             maxParticipitant: 2,
             rounds: 1,
+            matches: 1,
+            currentMatchId: 1,
             tournamentRules: null,
             teamSize: 1,
             registrationEnd: false,
@@ -376,8 +388,9 @@ tournamentSchema.pre("save", async function (next) {
         await Version.create({ table: 'tournaments', version: 1 });
     }
 
+    // Calculate percentage
     this.calculateCompletionPercentage();
-
+  
     next();
 });
 

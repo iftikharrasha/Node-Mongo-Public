@@ -181,7 +181,6 @@ const bookUserToBracketSlotService = async (tId, uId) => {
 
             // Create a deep copy of the selectedMatch to avoid mutation
             const modifiedMatch = JSON.parse(JSON.stringify(selectedMatch));
-            console.log("modifiedMatch", modifiedMatch);
 
             // Add the new participant to the copied match
             modifiedMatch.participants.push(convertedToParticipant);
@@ -189,10 +188,15 @@ const bookUserToBracketSlotService = async (tId, uId) => {
             // Save/update the new entry to the Bracket model
             const updatedBracket = await Bracket.findOneAndUpdate(
                 { tId: tId, 'matches.id': selectedMatch.id },
-                { $set: { 'matches.$': modifiedMatch } },
+                    { $set: { 
+                        'matches.$': modifiedMatch,
+                        version: bracket.version + 1,
+                    } 
+                },
                 { new: true }
             );
-            console.log("updatedBracket", updatedBracket);
+
+            console.log("modifiedMatch", modifiedMatch);
 
             return modifiedMatch;
         }
@@ -239,18 +243,26 @@ const updateTournamentApprovalService = async (id, data) => {
     let updatedTournament = data;
 
     if(currentTournament.settings.competitionMode === 'knockout'){
+        const updatedSettings = await calculateRoundAndMatches(updatedTournament)
         if(currentTournament.bracket.length === 0){
             const generatedBracket = await bracketGernerate(currentTournament.settings.maxParticipitant)
-
             const result = await bracketEntryService(currentTournament, generatedBracket)
-            // console.log(result)
 
             updatedTournament = {
                 ...currentTournament.toObject(),
                 ...data,
                 status: "active",
-                version: currentTournament.version + 1, // increment the version field
+                version: currentTournament.version + 1, 
+                settings: updatedSettings,
                 bracket:  currentTournament._id
+            };
+        }else{
+            updatedTournament = {
+                ...currentTournament.toObject(),
+                ...data,
+                status: "active",
+                version: currentTournament.version + 1, 
+                settings: updatedSettings,
             };
         }
     }else{
@@ -306,6 +318,15 @@ const bracketGernerate = async (particaipants) => {
     }
   
     return bracket;
+};
+
+const calculateRoundAndMatches = async (data) => {
+    const settings = data.settings;
+    const maxParticipitant = settings.maxParticipitant;
+    settings.rounds = Math.log2(maxParticipitant);
+    settings.matches = maxParticipitant - 1;
+
+    return settings;
 };
 
 const bracketEntryService = async (tournament, bracketData) => {
