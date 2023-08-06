@@ -24,6 +24,23 @@ const getAllTournamentsService = async () => {
       return tournamentsWithStatus;
 }
 
+const getAllTournamentsFilteredService = async (query) => {
+    const tournaments = await Tournament.find(query)
+                                        .sort({createdAt: -1})
+                                        .populate('masterProfile', excludedMasterFields)
+                                        .lean(); // Make sure to use 'lean()' to enable virtuals
+
+    // Manually add the tournamentStatus to each tournament object
+    const tournamentsWithStatus = tournaments.map(tournament => {
+        return {
+            ...tournament,
+            tournamentStage: calculateTournamentStatus(tournament.dates),
+        };
+      });
+    
+      return tournamentsWithStatus;
+}
+
 // Helper function to calculate the tournament status based on dates
 const calculateTournamentStatus = (dates) => {
     const currentDate = new Date();
@@ -40,8 +57,6 @@ const calculateTournamentStatus = (dates) => {
         return 0;
     }
 }
-// tournamentSchema.virtual('tournamentStatus').get(function () {
-// });
 
 const getTournamentDetailsService = async (id) => {
     const tournament = await Tournament.findOne({ _id: id })
@@ -196,8 +211,6 @@ const bookUserToBracketSlotService = async (tId, uId) => {
                 { new: true }
             );
 
-            console.log("modifiedMatch", modifiedMatch);
-
             return modifiedMatch;
         }
 
@@ -245,8 +258,12 @@ const updateTournamentApprovalService = async (id, data) => {
     if(currentTournament.settings.competitionMode === 'knockout'){
         const updatedSettings = await calculateRoundAndMatches(updatedTournament)
         if(currentTournament.bracket.length === 0){
-            const generatedBracket = await bracketGernerate(currentTournament.settings.maxParticipitant)
+            const generatedBracket = await bracketGernerate(currentTournament.dates.tournamentStart, currentTournament.settings.maxParticipitant)
             const result = await bracketEntryService(currentTournament, generatedBracket)
+            
+            const firstMatch = generatedBracket[currentTournament?.settings?.currentMatchId-1];
+            const finalMatch = generatedBracket[currentTournament?.settings?.maxParticipitant-2];
+            const updatedDates = await calculateDatesFromBrackets(updatedTournament, firstMatch, finalMatch)
 
             updatedTournament = {
                 ...currentTournament.toObject(),
@@ -254,6 +271,7 @@ const updateTournamentApprovalService = async (id, data) => {
                 status: "active",
                 version: currentTournament.version + 1, 
                 settings: updatedSettings,
+                dates: updatedDates,
                 bracket:  currentTournament._id
             };
         }else{
@@ -283,7 +301,7 @@ const updateTournamentApprovalService = async (id, data) => {
     return populatedTournament;
 }
 
-const bracketGernerate = async (particaipants) => {
+const bracketGernerate = async (tournamentStart, particaipants) => {
     const bracket = [];
     let rp = particaipants;
     const totalMatch = particaipants - 1;
@@ -291,8 +309,8 @@ const bracketGernerate = async (particaipants) => {
     let offset = particaipants/2;
     let matchId = 0;
 
-    const date = new Date();
-    const todayFull = moment(date);
+    // const date = new Date();
+    const start = moment(tournamentStart);
   
     for(let j = 1; j <= rounds; j++) {
       for (let i = 1; i <= (rp/2); i++) {
@@ -307,7 +325,7 @@ const bracketGernerate = async (particaipants) => {
           nextMatchId: rp === 2 || i === totalMatch ? null : nextMatchId,
           name: rp === 2 || i === totalMatch ? `Final Match` : `Round ${j} - Match ${i}`,
           tournamentRoundText: `${j}`,
-          startTime: `${todayFull.add(2, 'hours').format('llll')}`, 
+          startTime: matchId === 1 ? `${start.format('llll')}` : `${start.add(2, 'hours').format('llll')}`, 
           state: 'SCHEDULED',
           participants: [],
         };
@@ -329,6 +347,14 @@ const calculateRoundAndMatches = async (data) => {
     return settings;
 };
 
+const calculateDatesFromBrackets = async (data, first, final) => {
+    const dates = data.dates;
+    dates.tournamentStart = first.startTime;
+    dates.tournamentEnd = final.startTime;
+
+    return dates;
+};
+
 const bracketEntryService = async (tournament, bracketData) => {
     try {
         const bracket = new Bracket({ 
@@ -347,6 +373,7 @@ const bracketEntryService = async (tournament, bracketData) => {
 module.exports = {
     createTournamentService,
     getAllTournamentsService,
+    getAllTournamentsFilteredService,
     getTournamentDetailsService,
     updateTournamentByIdService,
     deleteTournamentByIdService,

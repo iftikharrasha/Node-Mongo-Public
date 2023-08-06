@@ -1,4 +1,4 @@
-const { getAllTournamentsService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentBracketByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, bookUserToBracketSlotService, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getAllTournamentsFilteredService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentBracketByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, bookUserToBracketSlotService, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
 const { addPurchasedItemToUserService, updateXp } = require("../services/account.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
@@ -16,6 +16,92 @@ const getAllTournaments = async (req, res, next) => {
         const clientVersion = parseInt(req.query.version);
 
         const data = await getAllTournamentsService();
+        const versionData = await getVersionTableService();
+
+        if (data.length > 0) {
+            try {
+                let serverVersion = 0;
+                const tableData = versionData.find( item => item.table === "tournaments");
+                if (tableData && tableData.version) {
+                    serverVersion = tableData.version;
+                }
+
+                if (serverVersion > clientVersion) {
+                    response.data = data;
+                    response.version = serverVersion;
+                }else {
+                    response.status = 304;
+                    response.version = serverVersion;
+                    response.error = {
+                        code: 304,
+                        message: "Client have the latest version",
+                        target: "fetch data from the redux store"
+                    }
+                }
+            } catch (err) {
+                response.data = null;
+                response.success = false;
+                response.status = 500;
+                response.version = serverVersion;
+                response.error = {
+                    code: 500,
+                    message: "An Internal Error Has Occurred!",
+                    target: "approx what the error came from"
+                }
+            }
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "No tournaments found!",
+                target: "database"
+            }
+        }
+    } catch (err) {
+        console.log(err);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred!",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+
+    res.send(response);
+}
+
+const getAllTournamentsFiltered = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: [],
+        error: null
+    }
+    try {
+        const {version, status, masterProfile} = req.query;
+        const clientVersion = parseInt(version);
+        const query = {};
+    
+        // Add status to the query
+        if (status) {
+            query.status = status;
+        }
+    
+        // Add masterProfile to the query
+        if (masterProfile) {
+            query.masterProfile = masterProfile;
+        }
+
+        const data = await getAllTournamentsFilteredService(query);
         const versionData = await getVersionTableService();
 
         if (data.length > 0) {
@@ -258,7 +344,7 @@ const deleteTournamentDetails = async (req, res, next) => {
     
         const result = await deleteTournamentByIdService(id);
         const result2 = await deleteTournamentLeaderboardByIdService(id);
-        console.log("competitionMode", result.settings.competitionMode);
+        
         if(result.settings.competitionMode === 'knockout'){
             const result3 = await deleteTournamentBracketByIdService(id);
         }
@@ -780,6 +866,7 @@ const addNewFile = async (req, res, next) => {
 
 module.exports = {
     getAllTournaments,
+    getAllTournamentsFiltered,
     getTournamentDetails,
     updateTournamentDetails,
     deleteTournamentDetails,

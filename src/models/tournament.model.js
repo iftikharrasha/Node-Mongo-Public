@@ -237,7 +237,7 @@ const tournamentSchema = new mongoose.Schema({
         type: String,
         validate: [validator.isURL, "Please provide a valid image url"],
         // required: true,
-        default: 'https://i.ibb.co/BN5qYV4/freefire-cover.jpg'
+        default: 'https://galactic.dynamiclayers.net/wp-content/themes/galactic/assets/img/body-bg.jpg',
     },
     category: {
         type: String,
@@ -390,6 +390,9 @@ tournamentSchema.pre("save", async function (next) {
 
     // Calculate percentage
     this.calculateCompletionPercentage();
+
+    // Add coverImage
+    this.addTournamentCover();
   
     next();
 });
@@ -408,23 +411,6 @@ tournamentSchema.post('save', async function(doc, next) {
 });
 
 tournamentSchema.pre('findOneAndUpdate', async function (next) {
-    const requiredFields = ['tournamentName', 'tournamentThumbnail', 'category', 'settings.joiningFee', 'dates.registrationStart', 'dates.registrationEnd'];
-    const updatedFields = this.getUpdate(); //returns an object that contains the changes made to the tournament document after update
-    const tournament = await this.model.findOne(this.getFilter());
-
-    // Calculate the completion percentage based on the updated fields
-    let completedFields = 0;
-    requiredFields.forEach(field => {
-        if (updatedFields[field] || tournament[field]) {
-            completedFields++;
-        }
-    });
-    const completionPercentage = Math.round(completedFields / requiredFields.length * 100);
-    // console.log("completionPercentage", completionPercentage);
-    
-    // Update the completion percentage field
-    this.updateOne({ completionPercentage: completionPercentage });
-
     // Update version table
     const versionTable = await Version.findOne({ table: 'tournaments' });
     if (versionTable) {
@@ -451,8 +437,13 @@ tournamentSchema.pre('findOneAndUpdate', async function (next) {
 tournamentSchema.pre('findOneAndDelete', async function (next) {
     const versionTable = await Version.findOne({ table: 'tournaments' });
     if (versionTable) {
-      versionTable.version = versionTable.version + 1;
-      await versionTable.save();
+        versionTable.version = versionTable.version + 1;
+        await versionTable.save();
+
+        // Invalidate the cache for tournaments
+        const key = `/api/v1/tournaments?version=${versionTable.version}`;
+        console.log('Invalidating', key);
+        cache.del(key); 
     }
     next();
 });
@@ -478,15 +469,33 @@ tournamentSchema.methods.calculateCompletionPercentage = function() {
     this.completionPercentage = percentage;
 };
 
+tournamentSchema.methods.addTournamentCover = function() {
+    const category = this.category;
+    let tournamentCover;
+
+    if (category === 'pubg') {
+        tournamentCover = 'https://cdn.exputer.com/wp-content/uploads/2022/07/PUBG-Patch-18.2-Adds-More-Graphical-Options-For-Next-Gen-Consoles.jpg.webp';
+    } else if (category === 'freefire') {
+        tournamentCover = 'https://d.newsweek.com/en/full/1987539/garena-free-fire-keyart.webp?w=1600&h=900&q=88&f=e35a53dbb53ee0455d23e0afef5da942';
+    } else if (category === 'csgo') {
+        tournamentCover = 'https://i.pinimg.com/originals/7b/23/2c/7b232ccb015d9c21143b6ccd67038e63.jpg';
+    } else if (category === 'warzone') {
+        tournamentCover = 'https://whatifgaming.com/wp-content/uploads/2022/11/Warzone-2-1.jpg';
+    } else if (category === 'fifa') {
+        tournamentCover = 'https://fifauteam.com/images/stadiums/england/OldTrafford/24.webp';
+    } else {
+        tournamentCover = 'https://galactic.dynamiclayers.net/wp-content/themes/galactic/assets/img/body-bg.jpg';
+    }
+  
+    this.tournamentCover = tournamentCover;
+};
+
 const Tournament = mongoose.model("Tournament", tournamentSchema);
 module.exports = Tournament;
 
 
 // purchase, registrationEnd, tournamentEnd issue
-// gameType -> category
 // categories -> filter
 // tournamentCreated -> createdAt
-// tournamentIcon == category
 // percentage break down in 8 stage
-// joined 
 // getAllInternalTournamentsService of admin check his id if admin or not before returning data

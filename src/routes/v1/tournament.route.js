@@ -17,6 +17,10 @@ router
 .post(authentication, authorization("master", "admin"), tournamentControllers.addANewTournament)
 
 router
+.route('/by')
+.get(validateVersion, cache(300), tournamentControllers.getAllTournamentsFiltered)
+
+router
 .route('/:id')
 .get(validateVersion, validateParams, viewCount, tournamentControllers.getTournamentDetails)
 .patch(authentication, authorization("master", "admin"), validateParams, tournamentControllers.updateTournamentDetails)
