@@ -85,8 +85,61 @@ const getBracketService = async (id) => {
 
 const getCredentialsService = async (id) => {
     const tournament = await Tournament.findOne({ _id: id })
-    const credentials = tournament.credentials;
+    let credentials = {}
+
+    if(tournament.settings.competitionMode === "knockout"){
+       credentials = await getCurrentMatchCredentials(id, tournament.settings.currentMatchId)
+    }else{
+       credentials = tournament.credentials;
+    }
+
     return credentials;
+}
+
+const getCurrentMatchCredentials = async (tId, matchId) => {
+    const bracket = await Bracket.findOne({ tId: tId });
+    const match = bracket.matches[matchId-1];
+    const credentials = match.credentials;
+
+    return credentials;
+}
+
+const updateTournamentCredentialsService = async (id, data) => {
+    const currentTournament = await Tournament.findById(id);
+
+    if(currentTournament.settings.competitionMode === "knockout"){
+        //for knockout games credentials
+        const bracket = await getBracketService(id);
+        const currentMatchId = currentTournament.settings.currentMatchId - 1;
+        const match = bracket.matches[currentMatchId];
+        match.credentials = data;  // Update the credentials for the match
+
+        const updatedBracket = {
+            ...bracket.toObject(),
+            matches: [...bracket.matches]  // Make a copy of matches array to avoid mutation
+        };
+        updatedBracket.matches[currentMatchId] = match;
+   
+        const finalBracket = await Bracket.findOneAndUpdate({ tId: id }, updatedBracket, {
+            new: true,
+            runValidators: false
+        });
+    }
+
+    //for ladder games credentials
+    const updatedTournament = {
+        ...currentTournament.toObject(),
+        credentials: data,
+        version: currentTournament.version + 1 // increment the version field
+    };
+
+    const tournament = await Tournament.findOneAndUpdate({ _id: id }, updatedTournament, {
+        new: true,
+        runValidators: false
+    });
+    
+    //    const populatedTournament = await getTournamentDetailsService(tournament._id);
+    return tournament;
 }
 
 const createTournamentService = async (data) => {
@@ -229,7 +282,12 @@ const getRandomMatchWithVacancy = (array) => {
 const getAllMasterTournamentsService = async (id) => {
     const tournaments = await Tournament.find({ 'masterProfile': id }) 
                                         .sort({createdAt: -1})
-                                        .populate('masterProfile', excludedMasterFields)
+                                        .populate([
+                                            { path: 'masterProfile', select: excludedMasterFields },
+                                            { path: 'leaderboards' },  // Add the path for leaderboards
+                                            { path: 'bracket' }        // Add the path for bracket
+                                        ]);
+                                        // .populate('masterProfile', excludedMasterFields)
     
     return tournaments;
 }
@@ -259,7 +317,7 @@ const updateTournamentApprovalService = async (id, data) => {
         const updatedSettings = await calculateRoundAndMatches(updatedTournament)
         if(currentTournament.bracket.length === 0){
             const generatedBracket = await bracketGernerate(currentTournament.dates.tournamentStart, currentTournament.settings.maxParticipitant)
-            const result = await bracketEntryService(currentTournament, generatedBracket)
+            const bracket = await bracketEntryService(currentTournament, generatedBracket)
             
             const firstMatch = generatedBracket[currentTournament?.settings?.currentMatchId-1];
             const finalMatch = generatedBracket[currentTournament?.settings?.maxParticipitant-2];
@@ -272,7 +330,7 @@ const updateTournamentApprovalService = async (id, data) => {
                 version: currentTournament.version + 1, 
                 settings: updatedSettings,
                 dates: updatedDates,
-                bracket:  currentTournament._id
+                bracket:  bracket._id
             };
         }else{
             updatedTournament = {
@@ -382,6 +440,7 @@ module.exports = {
     getLeaderboardsService,
     getBracketService,
     getCredentialsService,
+    updateTournamentCredentialsService,
     addUserToLeaderboardService,
     getAllMasterTournamentsService,
     getAllInternalTournamentsService,

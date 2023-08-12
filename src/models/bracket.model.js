@@ -29,6 +29,17 @@ const participantSchema = new mongoose.Schema({
     },
 },{ _id: false });
 
+const credentialsSchema = new mongoose.Schema({
+    roomId: {
+        type: String,
+        default: null
+    },
+    roomPassword: {
+        type: String,
+        default: null
+    }
+},{ _id: false });
+
 const matchSchema = new mongoose.Schema({
     id: { 
         type: Number, 
@@ -59,6 +70,13 @@ const matchSchema = new mongoose.Schema({
         default: null 
     },
     participants: [participantSchema],
+    credentials: { 
+        type: credentialsSchema,
+        default: {
+            roomId: null,
+            roomPassword: null,
+        }
+    },
 },{ _id: false });
 
 const bracketSchema = new mongoose.Schema({
@@ -95,8 +113,19 @@ bracketSchema.pre("save", async function (next) {
 bracketSchema.pre('findOneAndUpdate', async function (next) {
   const versionTable = await Version.findOne({ table: 'brackets' });
   if (versionTable) {
-    versionTable.version = versionTable.version + 1;
-    await versionTable.save();
+    const updatedVersion = versionTable.version + 1;
+    await versionTable.updateOne({ version: updatedVersion });
+
+    // Invalidate the cache for tournaments
+    // const key = `/api/v1/tournaments?version=${versionTable.version}`;
+    // // Invalidate multiple cache keys
+    // const keys = [
+    //     `/api/v1/tournaments?version=${versionTable.version}`,
+    //     '/api/v1/other-endpoint',
+    //     // Add more keys here
+    // ];
+    // console.log('Invalidating', key);
+    // cache.del(key); 
   }
 
   next();

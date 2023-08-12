@@ -1,4 +1,4 @@
-const { getAllTournamentsService, getAllTournamentsFilteredService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentBracketByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, bookUserToBracketSlotService, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getAllTournamentsFilteredService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, updateTournamentCredentialsService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentBracketByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, bookUserToBracketSlotService, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
 const { addPurchasedItemToUserService, updateXp } = require("../services/account.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
@@ -531,7 +531,7 @@ const updateCredentials = async (req, res, next) => {
     try {
         const { id } = req.params;
     
-        const result = await updateTournamentByIdService(id, req.body);
+        const result = await updateTournamentCredentialsService(id, req.body);
     
         if (!result) {
             response.success = false;
