@@ -1,4 +1,4 @@
-const { getAllTournamentsService, getAllTournamentsFilteredService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, updateTournamentCredentialsService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentBracketByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, bookUserToBracketSlotService, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getAllTournamentsFilteredService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, updateTournamentCredentialsService, updateTournamentResultService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentBracketByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, bookUserToBracketSlotService, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
 const { addPurchasedItemToUserService, updateXp } = require("../services/account.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
@@ -482,7 +482,8 @@ const getCredentials = async (req, res, next) => {
         error: null,
     }
     try {
-        const data = await getCredentialsService(req.params.id);
+        const uId = req.user.sub;
+        const data = await getCredentialsService(req.params.id, uId);
 
         if(!data){
             response.success = false;
@@ -547,6 +548,50 @@ const updateCredentials = async (req, res, next) => {
         }
         response.data = result;
         response.message = "Credentials updated successfully";
+        res.send(response);
+    } catch (error) {
+        response.success = false;
+        response.status = 400;
+        response.message = "Data is not updated";
+        response.error = {
+            code: 400,
+            message: error.message,
+            target: "client side api calling issue"
+        }
+
+        res.send(response);
+    }
+};
+
+const updateResult = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null
+    }
+
+    try {
+        const { id } = req.params;
+    
+        const result = await updateTournamentResultService(id, req.body);
+    
+        if (!result) {
+            response.success = false;
+            response.status = 400;
+            response.message = "Data is not updated";
+            response.error = {
+                code: 400,
+                message: error.message,
+                target: "client side api calling issue"
+            }
+
+            return res.send(response);
+        }
+        response.data = result;
+        response.message = "Result updated successfully";
         res.send(response);
     } catch (error) {
         response.success = false;
@@ -876,6 +921,7 @@ module.exports = {
     getBracket,
     getCredentials,
     updateCredentials,
+    updateResult,
     tournamentRegistration,
     getAllMasterTournaments,
     getAllInternalTournaments,

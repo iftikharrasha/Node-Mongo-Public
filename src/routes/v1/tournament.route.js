@@ -41,6 +41,10 @@ router
 .patch(authentication, authorization("master", "admin"), validateParams, tournamentControllers.updateCredentials)
 
 router
+.route('/result/:id')
+.patch(authentication, authorization("master", "admin"), validateParams, tournamentControllers.updateResult)
+
+router
 .route('/registration/:id')
 .post(authentication, validateParams, tournamentControllers.tournamentRegistration)
 

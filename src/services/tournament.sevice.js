@@ -83,12 +83,12 @@ const getBracketService = async (id) => {
     return bracket;
 }
 
-const getCredentialsService = async (id) => {
-    const tournament = await Tournament.findOne({ _id: id })
+const getCredentialsService = async (tId, uId) => {
+    const tournament = await Tournament.findOne({ _id: tId })
     let credentials = {}
 
     if(tournament.settings.competitionMode === "knockout"){
-       credentials = await getCurrentMatchCredentials(id, tournament.settings.currentMatchId)
+       credentials = await getCurrentMatchCredentials(tId, uId, tournament.settings.currentMatchId, credentials)
     }else{
        credentials = tournament.credentials;
     }
@@ -96,10 +96,14 @@ const getCredentialsService = async (id) => {
     return credentials;
 }
 
-const getCurrentMatchCredentials = async (tId, matchId) => {
+const getCurrentMatchCredentials = async (tId, uId, matchId, credentials) => {
     const bracket = await Bracket.findOne({ tId: tId });
     const match = bracket.matches[matchId-1];
-    const credentials = match.credentials;
+    
+    const IsSlotBooked = match.participants.find(participant => participant.id.toString() === uId);
+    if(IsSlotBooked){
+        credentials = match.credentials;
+    }
 
     return credentials;
 }
@@ -140,6 +144,73 @@ const updateTournamentCredentialsService = async (id, data) => {
     
     //    const populatedTournament = await getTournamentDetailsService(tournament._id);
     return tournament;
+}
+
+const updateTournamentResultService = async (id, winnerData) => {
+    const currentTournament = await Tournament.findById(id);
+
+    if(currentTournament.settings.competitionMode === "knockout"){
+        //for knockout games credentials
+        const bracket = await getBracketService(id);
+        const currentMatchId = currentTournament.settings.currentMatchId - 1;
+        const match = bracket.matches[currentMatchId];
+
+        const winnerIndex = match.participants.findIndex(participant => participant.id.toString() === winnerData.id);
+
+        if (winnerIndex !== -1) {
+            const loserIndex = winnerIndex === 0 ? 1 : 0;
+            
+            // Update the winner's data in the match
+            match.participants[winnerIndex] = {
+                ...winnerData,
+                resultText: 'WON',
+                isWinner: true,
+                status: 'PLAYED'
+            };
+
+            // Update the loser's data in the match (remaining participant)
+            const loserData = match.participants[loserIndex];
+            match.participants[loserIndex] = {
+                ...loserData.toObject(),
+                resultText: 'LOST',
+                isWinner: false,
+                status: 'PLAYED'
+            };
+
+            //then entry the user to the next match!
+            //also update the tournamentEnd and tournamentStart date according to next match time
+
+            // Update the match in the bracket
+            bracket.matches[currentMatchId] = match;
+
+            // Update the bracket in the database
+            const finalBracket = await Bracket.findOneAndUpdate({ tId: id }, bracket, {
+                new: true,
+                runValidators: false
+            });
+
+            // Update currentMatchId of tournament settings
+            if(currentMatchId < currentTournament.settings.matches){
+                const updatedTournament = {
+                    ...currentTournament.toObject(),
+                    settings: {
+                        ...currentTournament.settings,
+                        currentMatchId: currentTournament.settings.currentMatchId + 1
+                    }
+                };
+
+                const tournament = await Tournament.findOneAndUpdate({ _id: id }, updatedTournament, {
+                    new: true,
+                    runValidators: false
+                });
+            }
+
+            return finalBracket;
+        }
+    }
+
+    console.log("ladder result")
+    return currentTournament;
 }
 
 const createTournamentService = async (data) => {
@@ -441,6 +512,7 @@ module.exports = {
     getBracketService,
     getCredentialsService,
     updateTournamentCredentialsService,
+    updateTournamentResultService,
     addUserToLeaderboardService,
     getAllMasterTournamentsService,
     getAllInternalTournamentsService,
