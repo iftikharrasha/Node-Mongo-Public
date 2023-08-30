@@ -39,6 +39,7 @@ leaderboardSchema.pre('findOneAndUpdate', async function (next) {
     versionTable.version = versionTable.version + 1;
     await versionTable.save();
   }
+  console.log('leaderboards version: ' + versionTable.version)
 
   next();
 });

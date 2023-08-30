@@ -1,4 +1,4 @@
-const { getAllTournamentsService, getAllTournamentsFilteredService, getTournamentDetailsService, createTournamentService, updateTournamentByIdService, updateTournamentCredentialsService, updateTournamentResultService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentBracketByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, bookUserToBracketSlotService, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getAllTournamentsFilteredService, getTournamentDetailsService, getTournamentResultService, createTournamentService, updateTournamentByIdService, updateTournamentCredentialsService, updateTournamentResultService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentBracketByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, bookUserToBracketSlotService, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
 const { addPurchasedItemToUserService, updateXp } = require("../services/account.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
@@ -426,6 +426,40 @@ const getLeaderboards = async (req, res, next) => {
     res.send(response);
 };
 
+const getTournamentResult = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        version: 1,
+        data: {},
+        error: null,
+    }
+    try {
+        const data = await getTournamentResultService(req.params.id);
+
+        if(!data){
+            response.success = false;
+            response.status = 500;
+            response.error = { 
+                code: 500, 
+                message: "No result found",
+                target: "approx what the error came from", 
+            }
+        }else{
+            response.data = data.results;
+        }
+    } catch (error) {
+        response.success = false;
+        response.status = 500;
+        response.error = { 
+            code: 500, 
+            message: "An Internal Error Has Occurred!",
+            target: "approx what the error came from", 
+        }
+    }
+    res.send(response);
+};
+
 const getBracket = async (req, res, next) => {
     let response = {
         success: true,
@@ -620,19 +654,25 @@ const tournamentRegistration = async (req, res, next) => {
         const tId = req.params.id;
         const uId = req.user.sub;
         const data = req.body;
+        console.log("tId", tId);
+        console.log("uId", uId);
 
         // save or create
         const purchased = await addToPurchaseService(data);  //but check if user already has this purchased
+        // console.log("purchased", purchased);
         if(purchased) {
             const transaction = await addPurchaseToTransactionsService(uId, purchased._id.toString());
+            // console.log("transaction", transaction);
             if(transaction){
                 const tournament = await addUserToTournamentObjectLeaderboard(tId, uId);
+                // console.log("tournament", tournament);
                 if(tournament){
                     const leaderboard = await addUserToLeaderboardService(tId, uId);
+                    // console.log("leaderboard", leaderboard);
                     if(leaderboard){
                         if(tournament.settings.competitionMode === "knockout"){
                             const bracket = await bookUserToBracketSlotService(tId, uId);
-                            console.log("Bracket Push", bracket)
+                            // console.log("Bracket Push", bracket)
                         }
                         const xpAdd = await updateXp(uId, 100); //adding xp to the users account
                         const purchaseItem = await addPurchasedItemToUserService(tId, uId);
@@ -920,6 +960,7 @@ module.exports = {
     getLeaderboards,
     getBracket,
     getCredentials,
+    getTournamentResult,
     updateCredentials,
     updateResult,
     tournamentRegistration,

@@ -28,7 +28,7 @@ const addressSchema = new mongoose.Schema({
     }
 },{ _id: false });
 
-const GameSchema = new mongoose.Schema({
+const gameSchema = new mongoose.Schema({
     played: {
         type: Number,
         default: 0
@@ -44,6 +44,17 @@ const GameSchema = new mongoose.Schema({
 },{ _id: false });
 
 const socialSchema = new mongoose.Schema({
+    userId: {
+        type: String,
+        default: null
+    },
+    userName: {
+        type: String,
+        default: null
+    },
+},{ _id: false });
+
+const gameAccountsSchema = new mongoose.Schema({
     userId: {
         type: String,
         default: null
@@ -232,15 +243,15 @@ const userSchema = new mongoose.Schema({
         },
         games: {
             fifa: {
-                type: GameSchema,
+                type: gameSchema,
                 default: {
                     played: 0,
                     win: 0,
-                    defeat: 0
+                    defeat: 0,
                 }
             },
             pubg: {
-                type: GameSchema,
+                type: gameSchema,
                 default: {
                     played: 0,
                     win: 0,
@@ -248,7 +259,7 @@ const userSchema = new mongoose.Schema({
                 }
             },
             freefire: {
-                type: GameSchema,
+                type: gameSchema,
                 default: {
                     played: 0,
                     win: 0,
@@ -256,7 +267,7 @@ const userSchema = new mongoose.Schema({
                 }
             },
             csgo: {
-                type: GameSchema,
+                type: gameSchema,
                 default: {
                     played: 0,
                     win: 0,
@@ -282,14 +293,6 @@ const userSchema = new mongoose.Schema({
             type: socialSchema,
             default: null
         },
-        steam: {
-            type: socialSchema,
-            default: null
-        },
-        faceit: {
-            type: socialSchema,
-            default: null
-        },
         discord: {
             type: socialSchema,
             default: null
@@ -298,15 +301,29 @@ const userSchema = new mongoose.Schema({
             type: socialSchema,
             default: null
         },
+    },
+    gameAccounts: {
+        faceit: {
+            type: gameAccountsSchema,
+            default: null
+        },
         playstation: {
-            type: socialSchema,
+            type: gameAccountsSchema,
             default: null
         },
         xbox: {
-            type: socialSchema,
+            type: gameAccountsSchema,
             default: null
         },
-    }
+        steam: {
+            type: gameAccountsSchema,
+            default: null
+        },
+        epic: {
+            type: gameAccountsSchema,
+            default: null
+        }
+    },
 }, { timestamps: true });
 
 userSchema.pre("save", async function (next) {

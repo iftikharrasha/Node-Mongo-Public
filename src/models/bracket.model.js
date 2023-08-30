@@ -25,7 +25,7 @@ const participantSchema = new mongoose.Schema({
     },
     picture: { 
         type: String, 
-        default: null 
+        default: 'https://img.freepik.com/free-icon/mime_318-856855.jpg?q=10&h=200' 
     },
 },{ _id: false });
 
@@ -111,10 +111,13 @@ bracketSchema.pre("save", async function (next) {
 });
 
 bracketSchema.pre('findOneAndUpdate', async function (next) {
-  const versionTable = await Version.findOne({ table: 'brackets' });
-  if (versionTable) {
-    const updatedVersion = versionTable.version + 1;
-    await versionTable.updateOne({ version: updatedVersion });
+    const versionTable = await Version.findOne({ table: 'brackets' });
+    if (versionTable) {
+      versionTable.version = versionTable.version + 1;
+      await versionTable.save();
+    }
+
+    console.log('brackets version: ' + versionTable.version)
 
     // Invalidate the cache for tournaments
     // const key = `/api/v1/tournaments?version=${versionTable.version}`;
@@ -126,10 +129,9 @@ bracketSchema.pre('findOneAndUpdate', async function (next) {
     // ];
     // console.log('Invalidating', key);
     // cache.del(key); 
-  }
-
-  next();
-});
+  
+    next();
+  });
 
 const Bracket = mongoose.model('Bracket', bracketSchema);
 module.exports = Bracket;

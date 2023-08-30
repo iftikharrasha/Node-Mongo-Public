@@ -3,6 +3,7 @@ const Leaderboard = require('../models/leaderboard.model')
 const Bracket = require('../models/bracket.model')
 const User = require('../models/user.model')
 const moment = require('moment');
+const mongoose = require("mongoose");
 
 const excludedMasterFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -stats -socials -updatedAt -__v';
 const excludedUserFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -socials -updatedAt -__v';
@@ -11,6 +12,7 @@ const getAllTournamentsService = async () => {
     const tournaments = await Tournament.find({ status: 'active' })
                                         .sort({createdAt: -1})
                                         .populate('masterProfile', excludedMasterFields)
+                                        // .populate('results', excludedMasterFields)
                                         .lean(); // Make sure to use 'lean()' to enable virtuals
 
     // Manually add the tournamentStatus to each tournament object
@@ -78,6 +80,16 @@ const getLeaderboardsService = async (id) => {
     return leaderboard;
 }
 
+const getTournamentResultService = async (id) => {
+    const result = await Tournament.findOne({ _id: id })
+                                    .select('results')
+                                    .populate({
+                                        path: 'results',
+                                        select: excludedUserFields,
+                                    });
+    return result;
+}
+
 const getBracketService = async (id) => {
     const bracket = await Bracket.findOne({ tId: id });
     return bracket;
@@ -142,8 +154,8 @@ const updateTournamentCredentialsService = async (id, data) => {
         runValidators: false
     });
     
-    //    const populatedTournament = await getTournamentDetailsService(tournament._id);
-    return tournament;
+    const populatedTournament = await getTournamentDetailsService(tournament._id);
+    return populatedTournament;
 }
 
 const updateTournamentResultService = async (id, winnerData) => {
@@ -152,13 +164,20 @@ const updateTournamentResultService = async (id, winnerData) => {
     if(currentTournament.settings.competitionMode === "knockout"){
         //for knockout games credentials
         const bracket = await getBracketService(id);
-        const currentMatchId = currentTournament.settings.currentMatchId - 1;
-        const match = bracket.matches[currentMatchId];
+
+        //currentMatch
+        const currentMatchIndex = currentTournament.settings.currentMatchId - 1;
+        const match = bracket.matches[currentMatchIndex];
+
+        //nextMatch
+        const nextMatchIndex = match.nextMatchId ? (match.nextMatchId - 1) : (match.id - 1);
+        const nextMatch = bracket.matches[nextMatchIndex];
 
         const winnerIndex = match.participants.findIndex(participant => participant.id.toString() === winnerData.id);
 
         if (winnerIndex !== -1) {
             const loserIndex = winnerIndex === 0 ? 1 : 0;
+            const loserData = match.participants[loserIndex];
             
             // Update the winner's data in the match
             match.participants[winnerIndex] = {
@@ -168,8 +187,7 @@ const updateTournamentResultService = async (id, winnerData) => {
                 status: 'PLAYED'
             };
 
-            // Update the loser's data in the match (remaining participant)
-            const loserData = match.participants[loserIndex];
+            // Update the loser's data in the match (the other player)
             match.participants[loserIndex] = {
                 ...loserData.toObject(),
                 resultText: 'LOST',
@@ -177,40 +195,80 @@ const updateTournamentResultService = async (id, winnerData) => {
                 status: 'PLAYED'
             };
 
-            //then entry the user to the next match!
-            //also update the tournamentEnd and tournamentStart date according to next match time
+            // 1. Update the match with winner loser and add the winner to next match
+            bracket.matches[currentMatchIndex] = match;
+            console.log('bracketVersionCr:', bracket.version)
+            bracket.version = bracket.version + 1;
+            console.log('bracketVersionUp:', bracket.version)
 
-            // Update the match in the bracket
-            bracket.matches[currentMatchId] = match;
+            let registrationEnd = currentTournament.dates.registrationEnd;
+            let tournamentStart = currentTournament.dates.tournamentStart;
+            let tournamentEnd = currentTournament.dates.tournamentEnd;
+            let currentMatchRunningId = currentTournament.settings.currentMatchId;
 
-            // Update the bracket in the database
+            if(currentMatchIndex === nextMatchIndex){
+                tournamentEnd = new Date()
+            }else{
+                registrationEnd = new Date();
+                tournamentStart = nextMatch.startTime;
+                currentMatchRunningId = currentTournament.settings.currentMatchId + 1;
+
+                //then entry the user to the next match!
+                nextMatch.participants.push(winnerData);
+                bracket.matches[nextMatchIndex] = nextMatch;
+            }
+
             const finalBracket = await Bracket.findOneAndUpdate({ tId: id }, bracket, {
                 new: true,
                 runValidators: false
             });
+            // console.log("finalBracket", finalBracket);
 
-            // Update currentMatchId of tournament settings
-            if(currentMatchId < currentTournament.settings.matches){
-                const updatedTournament = {
-                    ...currentTournament.toObject(),
-                    settings: {
-                        ...currentTournament.settings,
-                        currentMatchId: currentTournament.settings.currentMatchId + 1
-                    }
-                };
+            // Update currentMatchIndex of tournament settings and new dates
+            const updatedTournament = {
+                ...currentTournament.toObject(),
+                dates: {
+                    ...currentTournament.dates.toObject(),
+                    registrationEnd: registrationEnd,
+                    tournamentStart: tournamentStart,
+                    tournamentEnd: tournamentEnd
+                },
+                settings: {
+                    ...currentTournament.settings.toObject(),
+                    currentMatchId: currentMatchRunningId
+                }
+            };
+            // console.log("updatedTournament", updatedTournament);
 
-                const tournament = await Tournament.findOneAndUpdate({ _id: id }, updatedTournament, {
-                    new: true,
-                    runValidators: false
-                });
-            }
+            const tournament = await Tournament.findOneAndUpdate({ _id: id }, updatedTournament, {
+                new: true,
+                runValidators: false
+            });
 
-            return finalBracket;
+            const populatedTournament = await getTournamentDetailsService(tournament._id);
+            // console.log("populatedTournament", populatedTournament);
+            return populatedTournament;
         }
-    }
+    }else{
+        // Convert winnerIds to an array of ObjectIds
+        const winnerObjectIds = winnerData.map((id) => new mongoose.Types.ObjectId(id));
 
-    console.log("ladder result")
-    return currentTournament;
+        const updatedTournament = {
+            ...currentTournament.toObject(),
+            results: winnerObjectIds,
+            dates: {
+                ...currentTournament.dates.toObject(),
+                tournamentEnd: new Date()
+            },
+        };
+        const tournament = await Tournament.findOneAndUpdate({ _id: id }, updatedTournament, {
+            new: true,
+            runValidators: false
+        });
+
+        const populatedTournament = await getTournamentDetailsService(tournament._id);
+        return populatedTournament;
+    }
 }
 
 const createTournamentService = async (data) => {
@@ -281,6 +339,7 @@ const addUserToLeaderboardService = async (tId, uId) => {
     // console.log("currentLeaderboard", currentLeaderboard)
 
     if (currentLeaderboard.leaderboards.indexOf(uId) !== -1) {
+        console.log('leaderboard already exists or didnt get')
         return false
     } else {
         const result = await Leaderboard.findOneAndUpdate(
@@ -288,7 +347,7 @@ const addUserToLeaderboardService = async (tId, uId) => {
             { $push: { leaderboards: { $each: [uId], $position: 0 } }, $inc: { version: 1 } },
             { new: true }
         );
-        // console.log("result", result)
+        console.log('leaderboard push done')
         
         return result;
     }
@@ -509,11 +568,12 @@ module.exports = {
     updateTournamentApprovalService,
     deleteTournamentLeaderboardByIdService,
     getLeaderboardsService,
+    getTournamentResultService,
+    addUserToLeaderboardService,
     getBracketService,
     getCredentialsService,
     updateTournamentCredentialsService,
     updateTournamentResultService,
-    addUserToLeaderboardService,
     getAllMasterTournamentsService,
     getAllInternalTournamentsService,
     addUserToTournamentObjectLeaderboard,

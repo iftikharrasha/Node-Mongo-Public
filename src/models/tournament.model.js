@@ -8,8 +8,9 @@ const cache = require("../utils/cacheInstance");
 const pubgMaps = ['erangel', 'nusa', "livik", 'miramar', 'sanhok', 'vikendi', "karakin", "NA"];
 const freefireMaps = ['bermuda', 'purgatory', 'kalahari', 'alpine', 'nexterra', "NA"];
 const csgoMaps = ["dust II", "mirage", "overpass", "vertigo", "train", "inferno", "nuke", "ancient", "cache", "NA"];
-const warzoneMaps = ["verdansk", "rebirth island", "NA"];
-const fifaMaps = ["Old Trafford", "santiago narnabue", "NA"];
+const codMaps = ["vondel", "al mazrah", "ashika island", "NA"];
+const fifaMaps = ["old trafford", "santiago barnabue", "NA"];
+const rocketLeagueMaps = ["aquadome", "beckwith park", "champions field", "arctagon", "badlands", "basin", "barricade", "calavera", "carbon", "NA"];
 
 const settingsSchema = new mongoose.Schema({
     joiningFee: {
@@ -167,29 +168,6 @@ const prizesSchema = new mongoose.Schema({
     }
 },{ _id: false });
 
-const platformsSchema = new mongoose.Schema({
-    ps: {
-        type: Boolean,
-        default: false
-    },
-    xbox: {
-        type: Boolean,
-        default: false
-    },
-    pc: {
-        type: Boolean,
-        default: false
-    },
-    nintendo: {
-        type: Boolean,
-        default: false
-    },
-    mobile: {
-        type: Boolean,
-        default: false
-    }
-},{ _id: false });
-
 const datesSchema = new mongoose.Schema({
     registrationStart: {
         type: Date,
@@ -231,18 +209,16 @@ const tournamentSchema = new mongoose.Schema({
         type: String,
         validate: [validator.isURL, "Please provide a valid image url"],
         // required: true,
-        default: 'https://i.ibb.co/qs7QcBV/freefire-tourney.webp'
     },
     tournamentCover: {
         type: String,
         validate: [validator.isURL, "Please provide a valid image url"],
         // required: true,
-        default: 'https://galactic.dynamiclayers.net/wp-content/themes/galactic/assets/img/body-bg.jpg',
     },
     category: {
         type: String,
         enum: {
-            values: ["pubg", "warzone", "freefire", "csgo", "fifa"],
+            values: ["pubg", "cod", "freefire", "csgo", "fifa", "rocket league", "clash of clans", "clash royale"],
             message: "{VALUE} is not a valid category!",
         },
         required: true
@@ -302,10 +278,12 @@ const tournamentSchema = new mongoose.Schema({
                     return freefireMaps.includes(map);
                 }else if (category === 'csgo') {
                     return csgoMaps.includes(map);
-                }else if (category === 'warzone') {
-                    return warzoneMaps.includes(map);
+                }else if (category === 'cod') {
+                    return codMaps.includes(map);
                 }else if (category === 'fifa') {
                     return fifaMaps.includes(map);
+                }else if (category === 'rocket league') {
+                    return rocketLeagueMaps.includes(map);
                 }else {
                     return false;
                 }
@@ -313,15 +291,21 @@ const tournamentSchema = new mongoose.Schema({
             message: props => `${props.value} is not a valid map for ${props.path}`
         }
     },
-    platforms: { 
-        type: platformsSchema,
-        default: {
-            ps: false,
-            xbox: false,
-            pc: false,
-            nintendo: false,
-            mobile: false,
-        }
+    platforms: {
+        type: [String],
+        enum: {
+            values: ['psn', 'xbox', 'pc', 'mobile', 'nintendo', 'NA'],
+            message: "{VALUE} is not a valid platform!",
+        },
+        default: ['NA']
+    },
+    region: {
+        type: String,
+        enum: {
+            values: ["africa", "asia", "middle east", "europe", "central america", "north america", "south america", "oceania", "global"],
+            message: "{VALUE} is not a valid region!",
+        },
+        default: "global",
     },
     credentials: { 
         type: credentialsSchema,
@@ -356,6 +340,10 @@ const tournamentSchema = new mongoose.Schema({
             }
         }
     },
+    results: [{ 
+        type: ObjectId, 
+        ref: "User" 
+    }],
     masterProfile:{ 
         type: ObjectId, 
         ref: "User" 
@@ -392,7 +380,7 @@ tournamentSchema.pre("save", async function (next) {
     this.calculateCompletionPercentage();
 
     // Add coverImage
-    this.addTournamentCover();
+    this.addTournamentImages();
   
     next();
 });
@@ -416,9 +404,10 @@ tournamentSchema.pre('findOneAndUpdate', async function (next) {
     if (versionTable) {
         const updatedVersion = versionTable.version + 1;
         await versionTable.updateOne({ version: updatedVersion });
+        console.log('tournaments version: ' + versionTable.version, updatedVersion)
 
         // Invalidate the cache for tournaments
-        const key = `/api/v1/tournaments?version=${versionTable.version}`;
+        const key = `/api/v1/tournaments?version=${updatedVersion}`;
         // // Invalidate multiple cache keys
         // const keys = [
         //     `/api/v1/tournaments?version=${versionTable.version}`,
@@ -469,25 +458,42 @@ tournamentSchema.methods.calculateCompletionPercentage = function() {
     this.completionPercentage = percentage;
 };
 
-tournamentSchema.methods.addTournamentCover = function() {
+tournamentSchema.methods.addTournamentImages = function() {
     const category = this.category;
     let tournamentCover;
+    let tournamentThumbnail;
 
     if (category === 'pubg') {
         tournamentCover = 'https://cdn.exputer.com/wp-content/uploads/2022/07/PUBG-Patch-18.2-Adds-More-Graphical-Options-For-Next-Gen-Consoles.jpg.webp';
+        tournamentThumbnail = 'https://cdn.exputer.com/wp-content/uploads/2022/07/PUBG-Patch-18.2-Adds-More-Graphical-Options-For-Next-Gen-Consoles.jpg.webp';
     } else if (category === 'freefire') {
         tournamentCover = 'https://d.newsweek.com/en/full/1987539/garena-free-fire-keyart.webp?w=1600&h=900&q=88&f=e35a53dbb53ee0455d23e0afef5da942';
+        tournamentThumbnail = 'https://d.newsweek.com/en/full/1987539/garena-free-fire-keyart.webp?w=1600&h=900&q=88&f=e35a53dbb53ee0455d23e0afef5da942';
     } else if (category === 'csgo') {
         tournamentCover = 'https://i.pinimg.com/originals/7b/23/2c/7b232ccb015d9c21143b6ccd67038e63.jpg';
-    } else if (category === 'warzone') {
-        tournamentCover = 'https://whatifgaming.com/wp-content/uploads/2022/11/Warzone-2-1.jpg';
+        tournamentThumbnail = 'https://i.pinimg.com/originals/7b/23/2c/7b232ccb015d9c21143b6ccd67038e63.jpg';
+    } else if (category === 'cod') {
+        tournamentCover = 'https://whatifgaming.com/wp-content/uploads/2022/11/warzone-2-1.jpg';
+        tournamentThumbnail = 'https://whatifgaming.com/wp-content/uploads/2022/11/warzone-2-1.jpg';
     } else if (category === 'fifa') {
         tournamentCover = 'https://fifauteam.com/images/stadiums/england/OldTrafford/24.webp';
+        tournamentThumbnail = 'https://fifauteam.com/images/stadiums/england/OldTrafford/24.webp';
+    } else if (category === 'rocket league') {
+        tournamentCover = 'https://variety.com/wp-content/uploads/2020/07/rocket-league.jpg?w=1000&h=563&crop=1&resize=1000%2C563';
+        tournamentThumbnail = 'https://variety.com/wp-content/uploads/2020/07/rocket-league.jpg?w=1000&h=563&crop=1&resize=1000%2C563';
+    } else if (category === 'clash of clans') {
+        tournamentCover = 'https://media.newyorker.com/photos/590977c9019dfc3494ea2f7f/master/w_2560%2Cc_limit/Johnston-Clash-Clans.jpg';
+        tournamentThumbnail = 'https://media.newyorker.com/photos/590977c9019dfc3494ea2f7f/master/w_2560%2Cc_limit/Johnston-Clash-Clans.jpg';
+    } else if (category === 'clash royale') {
+        tournamentCover = 'https://www.touchtapplay.com/wp-content/uploads/2016/03/how-to-fix-clash-royale-connection-problems.jpg?fit=1000%2C592';
+        tournamentThumbnail = 'https://www.touchtapplay.com/wp-content/uploads/2016/03/how-to-fix-clash-royale-connection-problems.jpg?fit=1000%2C592';
     } else {
         tournamentCover = 'https://galactic.dynamiclayers.net/wp-content/themes/galactic/assets/img/body-bg.jpg';
+        tournamentThumbnail = 'https://i.ibb.co/qs7QcBV/freefire-tourney.webp';
     }
   
     this.tournamentCover = tournamentCover;
+    this.tournamentThumbnail = tournamentThumbnail;
 };
 
 const Tournament = mongoose.model("Tournament", tournamentSchema);

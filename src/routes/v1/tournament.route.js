@@ -13,12 +13,14 @@ const cache = require("../../middlewares/caching");
 
 router
 .route('/')
-.get(validateVersion, cache(300), tournamentControllers.getAllTournaments)
+.get(validateVersion, tournamentControllers.getAllTournaments)
+// .get(validateVersion, cache(300), tournamentControllers.getAllTournaments)
 .post(authentication, authorization("master", "admin"), tournamentControllers.addANewTournament)
 
 router
 .route('/by')
-.get(validateVersion, cache(300), tournamentControllers.getAllTournamentsFiltered)
+.get(validateVersion, tournamentControllers.getAllTournamentsFiltered)
+// .get(validateVersion, cache(300), tournamentControllers.getAllTournamentsFiltered)
 
 router
 .route('/:id')
@@ -42,6 +44,7 @@ router
 
 router
 .route('/result/:id')
+.get(validateParams, tournamentControllers.getTournamentResult)
 .patch(authentication, authorization("master", "admin"), validateParams, tournamentControllers.updateResult)
 
 router
