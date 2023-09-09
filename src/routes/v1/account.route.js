@@ -27,5 +27,9 @@ router
 .route('/list/:id')
 .get(authentication, authorization("admin"), validateVersion, validateParams, accountControllers.getUsersList)
 
+router
+.route('/gameaccount/:id')
+.post(authentication, validateParams, accountControllers.addGameAccount);
+
 
 module.exports = router;

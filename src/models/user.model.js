@@ -302,28 +302,10 @@ const userSchema = new mongoose.Schema({
             default: null
         },
     },
-    gameAccounts: {
-        faceit: {
-            type: gameAccountsSchema,
-            default: null
-        },
-        playstation: {
-            type: gameAccountsSchema,
-            default: null
-        },
-        xbox: {
-            type: gameAccountsSchema,
-            default: null
-        },
-        steam: {
-            type: gameAccountsSchema,
-            default: null
-        },
-        epic: {
-            type: gameAccountsSchema,
-            default: null
-        }
-    },
+    gameAccounts: [{
+      type: ObjectId,
+      ref: 'GameAccount'
+    }],
 }, { timestamps: true });
 
 userSchema.pre("save", async function (next) {

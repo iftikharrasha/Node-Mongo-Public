@@ -81,7 +81,15 @@ const settingsSchema = new mongoose.Schema({
     registrationEnd: { 
         type: Boolean, 
         default: false 
-    }
+    },
+    accountTag: {
+        type: String,
+        default: 'player',
+        enum: {
+            values: ['epic', 'activision', 'ea', 'steam', 'battelnet', 'supercell', 'faceit', 'player'],
+            message: "{VALUE} is not a valid accountTag!",
+        },
+    },
 },{ _id: false });
 
 const prizesSchema = new mongoose.Schema({
@@ -266,6 +274,7 @@ const tournamentSchema = new mongoose.Schema({
             teamSize: 1,
             registrationEnd: false,
             map: "NA",
+            accountTag: 'player',
         },
         validate: {
             validator: function(settings) {
@@ -380,7 +389,7 @@ tournamentSchema.pre("save", async function (next) {
     this.calculateCompletionPercentage();
 
     // Add coverImage
-    this.addTournamentImages();
+    this.addTournamentImagesTags();
   
     next();
 });
@@ -458,42 +467,53 @@ tournamentSchema.methods.calculateCompletionPercentage = function() {
     this.completionPercentage = percentage;
 };
 
-tournamentSchema.methods.addTournamentImages = function() {
+tournamentSchema.methods.addTournamentImagesTags = function() {
     const category = this.category;
     let tournamentCover;
     let tournamentThumbnail;
+    let tag;
 
     if (category === 'pubg') {
         tournamentCover = 'https://cdn.exputer.com/wp-content/uploads/2022/07/PUBG-Patch-18.2-Adds-More-Graphical-Options-For-Next-Gen-Consoles.jpg.webp';
         tournamentThumbnail = 'https://cdn.exputer.com/wp-content/uploads/2022/07/PUBG-Patch-18.2-Adds-More-Graphical-Options-For-Next-Gen-Consoles.jpg.webp';
+        tag = 'player';
     } else if (category === 'freefire') {
         tournamentCover = 'https://d.newsweek.com/en/full/1987539/garena-free-fire-keyart.webp?w=1600&h=900&q=88&f=e35a53dbb53ee0455d23e0afef5da942';
         tournamentThumbnail = 'https://d.newsweek.com/en/full/1987539/garena-free-fire-keyart.webp?w=1600&h=900&q=88&f=e35a53dbb53ee0455d23e0afef5da942';
+        tag = 'player';
     } else if (category === 'csgo') {
         tournamentCover = 'https://i.pinimg.com/originals/7b/23/2c/7b232ccb015d9c21143b6ccd67038e63.jpg';
         tournamentThumbnail = 'https://i.pinimg.com/originals/7b/23/2c/7b232ccb015d9c21143b6ccd67038e63.jpg';
+        tag = 'faceit';
     } else if (category === 'cod') {
         tournamentCover = 'https://whatifgaming.com/wp-content/uploads/2022/11/warzone-2-1.jpg';
         tournamentThumbnail = 'https://whatifgaming.com/wp-content/uploads/2022/11/warzone-2-1.jpg';
+        tag = 'activision';
     } else if (category === 'fifa') {
         tournamentCover = 'https://fifauteam.com/images/stadiums/england/OldTrafford/24.webp';
         tournamentThumbnail = 'https://fifauteam.com/images/stadiums/england/OldTrafford/24.webp';
+        tag = 'ea';
     } else if (category === 'rocket league') {
         tournamentCover = 'https://variety.com/wp-content/uploads/2020/07/rocket-league.jpg?w=1000&h=563&crop=1&resize=1000%2C563';
         tournamentThumbnail = 'https://variety.com/wp-content/uploads/2020/07/rocket-league.jpg?w=1000&h=563&crop=1&resize=1000%2C563';
+        tag = 'epic';
     } else if (category === 'clash of clans') {
         tournamentCover = 'https://media.newyorker.com/photos/590977c9019dfc3494ea2f7f/master/w_2560%2Cc_limit/Johnston-Clash-Clans.jpg';
         tournamentThumbnail = 'https://media.newyorker.com/photos/590977c9019dfc3494ea2f7f/master/w_2560%2Cc_limit/Johnston-Clash-Clans.jpg';
+        tag = 'supercell';
     } else if (category === 'clash royale') {
         tournamentCover = 'https://www.touchtapplay.com/wp-content/uploads/2016/03/how-to-fix-clash-royale-connection-problems.jpg?fit=1000%2C592';
         tournamentThumbnail = 'https://www.touchtapplay.com/wp-content/uploads/2016/03/how-to-fix-clash-royale-connection-problems.jpg?fit=1000%2C592';
+        tag = 'supercell';
     } else {
         tournamentCover = 'https://galactic.dynamiclayers.net/wp-content/themes/galactic/assets/img/body-bg.jpg';
         tournamentThumbnail = 'https://i.ibb.co/qs7QcBV/freefire-tourney.webp';
+        tag = 'player';
     }
   
     this.tournamentCover = tournamentCover;
     this.tournamentThumbnail = tournamentThumbnail;
+    this.settings.accountTag = tag;
 };
 
 const Tournament = mongoose.model("Tournament", tournamentSchema);

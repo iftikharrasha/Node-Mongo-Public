@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const { generateToken, generateRefreshToken } = require("../utils/token");
-const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService } = require("../services/account.service");
+const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService, addGameAccountService, gameAccountConnectToUser, updateXp } = require("../services/account.service");
 const { deleteTransactionByIdService } = require('../services/wallet.service');
 const { getVersionTableService } = require('../services/versionTable.service');
 
@@ -438,6 +438,59 @@ const getUsersList = async (req, res, next) => {
     res.send(response);
 }
 
+const addGameAccount = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null
+    }
+
+    try {
+        const result = await addGameAccountService(req.params.id, req.body);
+
+        if (!result) {
+            response.success = false;
+            response.status = 400;
+            response.message = "Game account is not created";
+            response.error = {
+                code: 400,
+                message: error.message,
+                target: "client side api calling issue"
+            }
+
+            return res.send(response);
+        }
+        const connected = await gameAccountConnectToUser(req.params.id, result._id);
+        if(connected){
+            const xpAdd = await updateXp(req.params.id, 50); //adding xp to the users account
+            console.log(connected);
+
+            response.data = result;
+            response.version = result.version;
+            response.message = "Game account created successfully";
+        }
+
+        res.send(response);
+    } catch (error) {
+        console.log(err);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+};
+
 module.exports = {
     userSignup,
     userLogin,
@@ -445,4 +498,5 @@ module.exports = {
     updateProfileById,
     deleteProfileById,
     getUsersList,
+    addGameAccount,
 }

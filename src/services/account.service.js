@@ -1,6 +1,8 @@
 const User = require("../models/user.model");
+const GameAccount = require("../models/gameaccount.model");
 
 const excludedUserFields = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -stats -socials -updatedAt -__v';
+const excludedGameAccountFields = '-version -uId -updatedAt -__v';
 
 const userSignupService = async (data) => {
     const user = await User.create(data);
@@ -8,11 +10,19 @@ const userSignupService = async (data) => {
 };
 
 const findUserByEmail = async (emailAddress) => {
-    return await User.findOne({ emailAddress });
+    return await User.findOne({ emailAddress })
+                    .populate({
+                        path: 'gameAccounts',
+                        select: excludedGameAccountFields,
+                    });
 };
 
 const findUserById = async (id) => {
-    return await User.findOne({ _id: id });
+    return await User.findOne({ _id: id })
+                    .populate({
+                        path: 'gameAccounts',
+                        select: excludedGameAccountFields,
+                    });
 };
 
 const updateProfileByIdService = async (id, data) => {
@@ -30,6 +40,32 @@ const updateProfileByIdService = async (id, data) => {
     });
     return result;
 };
+
+const addGameAccountService = async (id, data) => {
+    const gameaccount = await GameAccount.create(data);
+    return gameaccount;
+};
+
+const gameAccountConnectToUser = async (uId, gameId) => {
+    //pushing user id inside the tournament leaderboard
+    const currentUser = await User.findOne({ _id: uId });
+
+    if(currentUser){
+        if (currentUser.gameAccounts.indexOf(gameId) !== -1) {
+            return false
+        } else {
+            const result = await User.findOneAndUpdate(
+                { _id: currentUser._id },
+                {  $push: { "gameAccounts": gameId } },
+                { new: true }
+            );
+            
+            return result;
+        }
+    }else{
+        return false
+    }
+}
 
 // const updateXp = async (id, newXp) => {
 //     const currentProfile = await User.findOne({ _id: id });
@@ -146,5 +182,7 @@ module.exports = {
     deleteProfileByIdService,
     addPurchasedItemToUserService,
     getUsersListService,
-    updateXp
+    updateXp,
+    addGameAccountService,
+    gameAccountConnectToUser,
 }
