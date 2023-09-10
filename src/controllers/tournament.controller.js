@@ -390,6 +390,7 @@ const getLeaderboards = async (req, res, next) => {
     try {
         const clientVersion = parseInt(req.query.version);
         const data = await getLeaderboardsService(req.params.id);
+        console.log("leader", data)
 
         if(!data){
             response.success = false;
@@ -654,8 +655,10 @@ const tournamentRegistration = async (req, res, next) => {
         const tId = req.params.id;
         const uId = req.user.sub;
         const data = req.body;
+        const gameId = data.gameId;
         console.log("tId", tId);
         console.log("uId", uId);
+        console.log("gameId", gameId);
 
         // save or create
         const purchased = await addToPurchaseService(data);  //but check if user already has this purchased

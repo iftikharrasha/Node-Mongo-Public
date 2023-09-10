@@ -466,9 +466,9 @@ const addGameAccount = async (req, res, next) => {
         const connected = await gameAccountConnectToUser(req.params.id, result._id);
         if(connected){
             const xpAdd = await updateXp(req.params.id, 50); //adding xp to the users account
-            console.log(connected);
 
-            response.data = result;
+            const cleanedResult = _.omit(result.toObject(), ['version', 'uId', 'updatedAt', 'createdAt', '__v']);
+            response.data = cleanedResult;
             response.version = result.version;
             response.message = "Game account created successfully";
         }

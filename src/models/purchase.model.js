@@ -90,6 +90,11 @@ const purchaseSchema = new mongoose.Schema({
         ref: 'Team',
         default: null 
     },
+    gameId: { 
+        type: ObjectId,
+        ref: 'GameAccount',
+        default: null 
+    },
     version: { 
         type: Number, 
         default: 1 

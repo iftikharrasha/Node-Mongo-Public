@@ -2,7 +2,7 @@ const User = require("../models/user.model");
 const GameAccount = require("../models/gameaccount.model");
 
 const excludedUserFields = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -stats -socials -updatedAt -__v';
-const excludedGameAccountFields = '-version -uId -updatedAt -__v';
+const excludedGameAccountFields = '-version -uId -updatedAt -createdAt -__v';
 
 const userSignupService = async (data) => {
     const user = await User.create(data);
