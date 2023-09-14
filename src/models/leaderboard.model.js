@@ -16,7 +16,20 @@ const leaderboardSchema = new mongoose.Schema({
     type: Number, 
     default: 1 
   },
-  leaderboards: [{ type: ObjectId, ref: "User" }]
+  // 1. PREVIOUSONE
+  //leaderboards: [{ type: ObjectId, ref: "User" }]
+  leaderboards: [
+    {
+        gamer: {
+            type: ObjectId,
+            ref: "User",
+        },
+        gameAccount: {
+            type: ObjectId,
+            ref: "GameAccount",
+        },
+    },
+  ],
 }, { timestamps: true });
 
 //everytime a tournament added should we update the version table of bulk leaderboards?

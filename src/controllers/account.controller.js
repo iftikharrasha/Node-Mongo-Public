@@ -475,7 +475,7 @@ const addGameAccount = async (req, res, next) => {
 
         res.send(response);
     } catch (error) {
-        console.log(err);
+        console.log(error);
         res.send({
             success: false,
             status: 500,

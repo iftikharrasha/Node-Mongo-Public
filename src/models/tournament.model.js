@@ -8,7 +8,7 @@ const cache = require("../utils/cacheInstance");
 const pubgMaps = ['erangel', 'nusa', "livik", 'miramar', 'sanhok', 'vikendi', "karakin", "NA"];
 const freefireMaps = ['bermuda', 'purgatory', 'kalahari', 'alpine', 'nexterra', "NA"];
 const csgoMaps = ["dust II", "mirage", "overpass", "vertigo", "train", "inferno", "nuke", "ancient", "cache", "NA"];
-const codMaps = ["vondel", "al mazrah", "ashika island", "NA"];
+const warzoneMaps = ["vondel", "al mazrah", "ashika island", "NA"];
 const fifaMaps = ["old trafford", "santiago barnabue", "NA"];
 const rocketLeagueMaps = ["aquadome", "beckwith park", "champions field", "arctagon", "badlands", "basin", "barricade", "calavera", "carbon", "NA"];
 
@@ -226,7 +226,7 @@ const tournamentSchema = new mongoose.Schema({
     category: {
         type: String,
         enum: {
-            values: ["pubg", "cod", "freefire", "csgo", "fifa", "rocket league", "clash of clans", "clash royale"],
+            values: ["pubg", "warzone", "freefire", "csgo", "fifa", "rocket league", "clash of clans", "clash royale"],
             message: "{VALUE} is not a valid category!",
         },
         required: true
@@ -287,8 +287,8 @@ const tournamentSchema = new mongoose.Schema({
                     return freefireMaps.includes(map);
                 }else if (category === 'csgo') {
                     return csgoMaps.includes(map);
-                }else if (category === 'cod') {
-                    return codMaps.includes(map);
+                }else if (category === 'warzone') {
+                    return warzoneMaps.includes(map);
                 }else if (category === 'fifa') {
                     return fifaMaps.includes(map);
                 }else if (category === 'rocket league') {
@@ -485,9 +485,9 @@ tournamentSchema.methods.addTournamentImagesTags = function() {
         tournamentCover = 'https://i.pinimg.com/originals/7b/23/2c/7b232ccb015d9c21143b6ccd67038e63.jpg';
         tournamentThumbnail = 'https://i.pinimg.com/originals/7b/23/2c/7b232ccb015d9c21143b6ccd67038e63.jpg';
         tag = 'faceit';
-    } else if (category === 'cod') {
-        tournamentCover = 'https://whatifgaming.com/wp-content/uploads/2022/11/warzone-2-1.jpg';
-        tournamentThumbnail = 'https://whatifgaming.com/wp-content/uploads/2022/11/warzone-2-1.jpg';
+    } else if (category === 'warzone') {
+        tournamentCover = 'https://e24reactor-s3-bucket.s3.amazonaws.com/images/tournaments/5442ff27-ed75-49c8-a2c9-6631f34264e2-download.jpg';
+        tournamentThumbnail = 'https://e24reactor-s3-bucket.s3.amazonaws.com/images/tournaments/5442ff27-ed75-49c8-a2c9-6631f34264e2-download.jpg';
         tag = 'activision';
     } else if (category === 'fifa') {
         tournamentCover = 'https://fifauteam.com/images/stadiums/england/OldTrafford/24.webp';

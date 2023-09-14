@@ -390,7 +390,6 @@ const getLeaderboards = async (req, res, next) => {
     try {
         const clientVersion = parseInt(req.query.version);
         const data = await getLeaderboardsService(req.params.id);
-        console.log("leader", data)
 
         if(!data){
             response.success = false;
@@ -655,7 +654,7 @@ const tournamentRegistration = async (req, res, next) => {
         const tId = req.params.id;
         const uId = req.user.sub;
         const data = req.body;
-        const gameId = data.gameId;
+        const gameId = req.body.gameId;
         console.log("tId", tId);
         console.log("uId", uId);
         console.log("gameId", gameId);
@@ -670,7 +669,7 @@ const tournamentRegistration = async (req, res, next) => {
                 const tournament = await addUserToTournamentObjectLeaderboard(tId, uId);
                 // console.log("tournament", tournament);
                 if(tournament){
-                    const leaderboard = await addUserToLeaderboardService(tId, uId);
+                    const leaderboard = await addUserToLeaderboardService(tId, uId, gameId);
                     // console.log("leaderboard", leaderboard);
                     if(leaderboard){
                         if(tournament.settings.competitionMode === "knockout"){

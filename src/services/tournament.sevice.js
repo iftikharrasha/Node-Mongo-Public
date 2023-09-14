@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
 
 const excludedMasterFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -stats -socials -updatedAt -__v';
 const excludedUserFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -socials -updatedAt -__v';
+const excludedGameAccountFields = '-version -uId -updatedAt -createdAt -__v';
 
 const getAllTournamentsService = async () => {
     const tournaments = await Tournament.find({ status: 'active' })
@@ -70,13 +71,29 @@ const getTournamentDetailsService = async (id) => {
     return tournament;
 }
 
+//3. PREVIOUSONE
+// const getLeaderboardsService = async (id) => {
+//     const leaderboard = await Leaderboard.findOne({ tId: id })
+//                                         .populate({
+//                                             path: 'leaderboards',
+//                                             select: excludedUserFields,
+//                                             match: { status: { $ne: 'blocked' } } //we get users who are not blocked
+//                                         });
+//     return leaderboard;
+// }
+
 const getLeaderboardsService = async (id) => {
     const leaderboard = await Leaderboard.findOne({ tId: id })
                                         .populate({
-                                            path: 'leaderboards',
+                                            path: 'leaderboards.gamer',
                                             select: excludedUserFields,
                                             match: { status: { $ne: 'blocked' } } //we get users who are not blocked
-                                        });
+                                        })
+                                        .populate({
+                                            path: 'leaderboards.gameAccount', // Populate the 'gameAccount' field within the 'leaderboards' array
+                                            select: excludedGameAccountFields
+                                        })
+                                        .lean(); // Use 'lean' to convert the result to a plain JavaScript object;
     return leaderboard;
 }
 
@@ -333,21 +350,57 @@ const deleteTournamentBracketByIdService = async (id) => {
     return result;
 };
 
-const addUserToLeaderboardService = async (tId, uId) => {
+//2. PREVIOUSONE
+// const addUserToLeaderboardService = async (tId, uId) => {
+//     //pushing user id inside separate leaderboard
+//     const currentLeaderboard = await Leaderboard.findOne({ tId: tId });
+//     // console.log("currentLeaderboard", currentLeaderboard)
+
+//     if (currentLeaderboard.leaderboards.indexOf(uId) !== -1) {
+//         console.log('leaderboard already exists or didnt get')
+//         return false
+//     } else {
+//         const result = await Leaderboard.findOneAndUpdate(
+//             { _id: currentLeaderboard._id },
+//             { $push: { leaderboards: { $each: [uId], $position: 0 } }, $inc: { version: 1 } },
+//             { new: true }
+//         );
+//         console.log('leaderboard push done')
+        
+//         return result;
+//     }
+// };
+
+const addUserToLeaderboardService = async (tId, uId, gameId) => {
     //pushing user id inside separate leaderboard
     const currentLeaderboard = await Leaderboard.findOne({ tId: tId });
     // console.log("currentLeaderboard", currentLeaderboard)
 
-    if (currentLeaderboard.leaderboards.indexOf(uId) !== -1) {
-        console.log('leaderboard already exists or didnt get')
+    const userIndex = currentLeaderboard.leaderboards.findIndex(entry => entry.gamer.equals(uId));
+    console.log('userIndex')
+
+    if (userIndex !== -1) {
+        console.log('Gamer already exists')
         return false
     } else {
+        // Create a new entry with the user and gameId
+        const newLeaderboardEntry = {
+            gamer: uId, // ObjectId of the user
+            gameAccount: gameId, // The gameId for the user
+        };
+        console.log('newLeaderboardEntry', newLeaderboardEntry)
+
         const result = await Leaderboard.findOneAndUpdate(
             { _id: currentLeaderboard._id },
-            { $push: { leaderboards: { $each: [uId], $position: 0 } }, $inc: { version: 1 } },
+            {
+                $addToSet: {
+                    leaderboards: newLeaderboardEntry,
+                },
+                $inc: { version: 1 },
+            },
             { new: true }
         );
-        console.log('leaderboard push done')
+        console.log('leaderboard push done', result)
         
         return result;
     }

@@ -1,7 +1,11 @@
 const { getLandingStaticsService, createStaticService } = require("../services/statics.service");
 const { getVersionTableService } = require("../services/versionTable.service");
+var geoip = require('geoip-lite');
 
 const getLandingStatics = async (req, res, next) => {
+    const clientIP = req.ip || req.connection.remoteAddress;
+    var geo = geoip.lookup(clientIP);
+    
     try{
         // Check if the response is already cached
         if (res.headersSent) {

@@ -12,7 +12,7 @@ const gameaccountSchema = new mongoose.Schema({
   category: {
       type: String,
       enum: {
-          values: ["pubg", "cod", "freefire", "csgo", "fifa", "rocket league", "clash of clans", "clash royale"],
+          values: ["pubg", "warzone", "freefire", "csgo", "fifa", "rocket league", "clash of clans", "clash royale"],
           message: "{VALUE} is not a valid category!",
       },
       required: true
@@ -94,7 +94,7 @@ gameaccountSchema.methods.addAccountImage = function() {
         gameLogo = 'https://d.newsweek.com/en/full/1987539/garena-free-fire-keyart.webp?w=1600&h=900&q=88&f=e35a53dbb53ee0455d23e0afef5da942';
     } else if (category === 'csgo') {
         gameLogo = 'https://i.pinimg.com/originals/7b/23/2c/7b232ccb015d9c21143b6ccd67038e63.jpg';
-    } else if (category === 'cod') {
+    } else if (category === 'warzone') {
         gameLogo = 'https://whatifgaming.com/wp-content/uploads/2022/11/warzone-2-1.jpg';
     } else if (category === 'fifa') {
         gameLogo = 'https://fifauteam.com/images/stadiums/england/OldTrafford/24.webp';

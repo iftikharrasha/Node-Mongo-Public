@@ -49,19 +49,16 @@ const addGameAccountService = async (id, data) => {
 const gameAccountConnectToUser = async (uId, gameId) => {
     //pushing user id inside the tournament leaderboard
     const currentUser = await User.findOne({ _id: uId });
+    console.log(gameId, currentUser)
 
     if(currentUser){
-        if (currentUser.gameAccounts.indexOf(gameId) !== -1) {
-            return false
-        } else {
-            const result = await User.findOneAndUpdate(
-                { _id: currentUser._id },
-                {  $push: { "gameAccounts": gameId } },
-                { new: true }
-            );
-            
-            return result;
-        }
+        const result = await User.findOneAndUpdate(
+            { _id: currentUser._id },
+            {  $push: { "gameAccounts": gameId } },
+            { new: true }
+        );
+        
+        return result;
     }else{
         return false
     }
