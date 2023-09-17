@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const { generateToken, generateRefreshToken } = require("../utils/token");
-const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService, addGameAccountService, gameAccountConnectToUser, updateXp } = require("../services/account.service");
+const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService, addGameAccountService, friendRequestService, gameAccountConnectToUser, updateXp } = require("../services/account.service");
 const { deleteTransactionByIdService } = require('../services/wallet.service');
 const { getVersionTableService } = require('../services/versionTable.service');
 
@@ -491,6 +491,55 @@ const addGameAccount = async (req, res, next) => {
     }
 };
 
+const friendRequest = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null
+    }
+
+    try {
+        const result = await friendRequestService(req.body);
+        console.log(result)
+
+        if (!result.success) {
+            response.success = false;
+            response.status = 400;
+            response.message = "Friend requst having an issue";
+            response.error = {
+                code: 400,
+                message: error.message,
+                target: "client side api calling issue"
+            }
+
+            return res.send(response);
+        }
+        // const xpAdd = await updateXp(req.params.id, 50); //adding xp to the users account
+        response.data = req.body;
+        response.version = result.version;
+        response.message = result.message;
+
+        res.send(response);
+    } catch (error) {
+        console.log(error);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+};
+
 module.exports = {
     userSignup,
     userLogin,
@@ -499,4 +548,5 @@ module.exports = {
     deleteProfileById,
     getUsersList,
     addGameAccount,
+    friendRequest,
 }

@@ -31,5 +31,8 @@ router
 .route('/gameaccount/:id')
 .post(authentication, validateParams, accountControllers.addGameAccount);
 
+router
+.route('/friend/:id')
+.post(authentication, validateParams, accountControllers.friendRequest);
 
 module.exports = router;

@@ -186,8 +186,15 @@ const userSchema = new mongoose.Schema({
         }
     },
     requests: {
-        followers: [{ type: ObjectId, ref: 'User' }],
-        followings: [{ type: ObjectId, ref: 'User' }]
+        follow: {
+            following:  [{ type: ObjectId, ref: 'User'}],
+            follower: [{ type: ObjectId, ref: 'User'}],
+        },
+        friend: {
+            sent: [{ type: ObjectId, ref: 'User'}],
+            mutuals: [{ type: ObjectId, ref: 'User'}],
+            pending:  [{ type: ObjectId, ref: 'User'}],
+        },
     },
     teams: [{ type: ObjectId, ref: 'Team' }],
     purchasedItems: {

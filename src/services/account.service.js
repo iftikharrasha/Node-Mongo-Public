@@ -64,6 +64,102 @@ const gameAccountConnectToUser = async (uId, gameId) => {
     }
 }
 
+// const friendRequestService = async (data) => {
+//     const { from, to, type } = data;
+
+//     if(type === 'friend_request_send'){
+//         // Update the sender's 'friend.sent'
+//         const senderEnd = await User.findOneAndUpdate(
+//             { _id: from },
+//             { $push: { 'requests.friend.sent': to } }
+//         );
+
+//         const receiverEnd = await User.findOneAndUpdate(
+//             { _id: to },
+//             { $push: { 'requests.friend.pending': from  } }
+//         );
+
+//         return receiverEnd;
+//     }else if(){
+        
+//     }
+// };
+
+const friendRequestService = async (data) => {
+    const { from, to, type } = data;
+  
+    // Update based on the request type
+    switch (type) {
+        case 'friend_request_send':
+            // Update the sender's 'friend.sent'
+            await User.findOneAndUpdate(
+                { _id: from },
+                { $push: { 'requests.friend.sent': to } }
+            );
+
+            // Update the receiver's 'friend.pending'
+            await User.findOneAndUpdate(
+                { _id: to },
+                { $push: { 'requests.friend.pending': from } }
+            );
+            
+            return { success: true, message: `Friend request sent from ${from} to ${to}` };
+  
+        case 'friend_request_accept':
+            // Update the sender's 'friend.mutuals'
+            await User.findOneAndUpdate(
+              { _id: from },
+              { $push: { 'requests.friend.mutuals': to } }
+            );
+            // Update the receiver's 'friend.mutuals'
+            await User.findOneAndUpdate(
+              { _id: to },
+              { $push: { 'requests.friend.mutuals': from } }
+            );
+      
+            // Remove the request from the sender's 'friend.sent'
+            await User.findOneAndUpdate(
+              { _id: from },
+              { $pull: { 'requests.friend.sent': to } }
+            );
+            // Remove the request from the receiver's 'friend.pending'
+            await User.findOneAndUpdate(
+              { _id: to },
+              { $pull: { 'requests.friend.pending': from } }
+            );
+            return { success: true, message: `Friend request accepted between ${from} and ${to}` };
+  
+        case 'friend_request_reject':
+            // Remove the request from the sender's 'friend.sent'
+            await User.findOneAndUpdate(
+            { _id: from },
+            { $pull: { 'requests.friend.sent': to } }
+            );
+            // Remove the request from the receiver's 'friend.pending'
+            await User.findOneAndUpdate(
+            { _id: to },
+            { $pull: { 'requests.friend.pending': from } }
+            );
+            return { success: true, message: `Friend request rejected from ${from} to ${to}` };
+        
+        case 'friend_request_unfriend':
+            // Remove from as a mutual friend of to
+            await User.findOneAndUpdate(
+                { _id: to },
+                { $pull: { 'requests.friend.mutuals': from } }
+            );
+            // Remove to as a mutual friend of from
+            await User.findOneAndUpdate(
+                { _id: from },
+                { $pull: { 'requests.friend.mutuals': to } }
+            );
+            return { success: true, message: `${from} unfriended ${to}` };
+  
+        default:
+            return { success: false, message: 'Invalid request type' };
+    }
+  };
+
 // const updateXp = async (id, newXp) => {
 //     const currentProfile = await User.findOne({ _id: id });
   
@@ -182,4 +278,5 @@ module.exports = {
     updateXp,
     addGameAccountService,
     gameAccountConnectToUser,
+    friendRequestService,
 }
