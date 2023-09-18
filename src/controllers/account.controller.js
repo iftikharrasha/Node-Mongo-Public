@@ -503,7 +503,6 @@ const friendRequest = async (req, res, next) => {
 
     try {
         const result = await friendRequestService(req.body);
-        console.log(result)
 
         if (!result.success) {
             response.success = false;

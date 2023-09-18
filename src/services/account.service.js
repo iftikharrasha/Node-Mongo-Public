@@ -64,27 +64,6 @@ const gameAccountConnectToUser = async (uId, gameId) => {
     }
 }
 
-// const friendRequestService = async (data) => {
-//     const { from, to, type } = data;
-
-//     if(type === 'friend_request_send'){
-//         // Update the sender's 'friend.sent'
-//         const senderEnd = await User.findOneAndUpdate(
-//             { _id: from },
-//             { $push: { 'requests.friend.sent': to } }
-//         );
-
-//         const receiverEnd = await User.findOneAndUpdate(
-//             { _id: to },
-//             { $push: { 'requests.friend.pending': from  } }
-//         );
-
-//         return receiverEnd;
-//     }else if(){
-        
-//     }
-// };
-
 const friendRequestService = async (data) => {
     const { from, to, type } = data;
   
