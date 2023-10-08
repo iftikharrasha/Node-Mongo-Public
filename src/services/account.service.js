@@ -54,7 +54,7 @@ const gameAccountConnectToUser = async (uId, gameId) => {
     if(currentUser){
         const result = await User.findOneAndUpdate(
             { _id: currentUser._id },
-            {  $push: { "gameAccounts": gameId } },
+            {  $inc: { version: 1 }, $push: { "gameAccounts": gameId } },
             { new: true }
         );
         
@@ -73,13 +73,13 @@ const friendRequestService = async (data) => {
             // Update the sender's 'friend.sent'
             await User.findOneAndUpdate(
                 { _id: from },
-                { $push: { 'requests.friend.sent': to } }
+                { $inc: { version: 1 }, $push: { 'requests.friend.sent': to } }
             );
 
             // Update the receiver's 'friend.pending'
             await User.findOneAndUpdate(
                 { _id: to },
-                { $push: { 'requests.friend.pending': from } }
+                { $inc: { version: 1 }, $push: { 'requests.friend.pending': from } }
             );
             
             return { success: true, message: `Friend request sent from ${from} to ${to}` };
@@ -88,36 +88,36 @@ const friendRequestService = async (data) => {
             // Update the sender's 'friend.mutuals'
             await User.findOneAndUpdate(
               { _id: from },
-              { $push: { 'requests.friend.mutuals': to } }
+              { $inc: { version: 1 }, $push: { 'requests.friend.mutuals': to } }
             );
             // Update the receiver's 'friend.mutuals'
             await User.findOneAndUpdate(
               { _id: to },
-              { $push: { 'requests.friend.mutuals': from } }
+              { $inc: { version: 1 }, $push: { 'requests.friend.mutuals': from } }
             );
       
             // Remove the request from the sender's 'friend.sent'
             await User.findOneAndUpdate(
               { _id: from },
-              { $pull: { 'requests.friend.sent': to } }
+              { $inc: { version: 1 }, $pull: { 'requests.friend.sent': to } }
             );
             // Remove the request from the receiver's 'friend.pending'
             await User.findOneAndUpdate(
               { _id: to },
-              { $pull: { 'requests.friend.pending': from } }
+              { $inc: { version: 1 }, $pull: { 'requests.friend.pending': from } }
             );
             return { success: true, message: `Friend request accepted between ${from} and ${to}` };
   
         case 'friend_request_reject':
             // Remove the request from the sender's 'friend.sent'
             await User.findOneAndUpdate(
-            { _id: from },
-            { $pull: { 'requests.friend.sent': to } }
+                { _id: to },
+                { $inc: { version: 1 }, $pull: { 'requests.friend.sent': from } }
             );
             // Remove the request from the receiver's 'friend.pending'
             await User.findOneAndUpdate(
-            { _id: to },
-            { $pull: { 'requests.friend.pending': from } }
+                { _id: from },
+                { $inc: { version: 1 }, $pull: { 'requests.friend.pending': to } }
             );
             return { success: true, message: `Friend request rejected from ${from} to ${to}` };
         
@@ -125,41 +125,30 @@ const friendRequestService = async (data) => {
             // Remove from as a mutual friend of to
             await User.findOneAndUpdate(
                 { _id: to },
-                { $pull: { 'requests.friend.mutuals': from } }
+                { $inc: { version: 1 }, $pull: { 'requests.friend.mutuals': from } }
             );
             // Remove to as a mutual friend of from
             await User.findOneAndUpdate(
                 { _id: from },
-                { $pull: { 'requests.friend.mutuals': to } }
+                { $inc: { version: 1 }, $pull: { 'requests.friend.mutuals': to } }
             );
             return { success: true, message: `${from} unfriended ${to}` };
   
         default:
             return { success: false, message: 'Invalid request type' };
     }
-  };
+};
 
-// const updateXp = async (id, newXp) => {
-//     const currentProfile = await User.findOne({ _id: id });
-  
-//     const updatedProfile = {
-//         ...currentProfile.toObject(),
-//         stats: {
-//             ...currentProfile.stats,
-//             totalXp: currentProfile.stats.totalXp + newXp,
-//             currentXP: currentProfile.stats.currentXP + newXp
-//         },
-//         version: currentProfile.version + 1,
-//     };
-  
-//     const result = await User.findOneAndUpdate(
-//       { _id: id },
-//       updatedProfile,
-//       { new: true, runValidators: true }
-//     );
-  
-//     return true;
-// };  
+const getfriendlistService = async (id) => {
+    const currentProfile = await User.findOne({ _id: id })
+                                .select('requests.friend.mutuals requests.follow.follower')
+                                .populate({
+                                    path: 'requests.friend.mutuals requests.follow.follower',
+                                    select: excludedUserFields,
+                                });
+    
+    return currentProfile
+};
 
 const updateXp = async (id, newXp) => {
     const currentProfile = await User.findOne({ _id: id });
@@ -170,16 +159,51 @@ const updateXp = async (id, newXp) => {
     let currentLevel = currentProfile.stats.currentLevel;
     let nextLevelRequiredXP = currentProfile.stats.nextLevelRequiredXP;
   
-    if (totalXp >= 140 && totalXp < 500) {
-      levelTitle = "rockie";
-      currentLevel = 2;
-      nextLevelRequiredXP = 500 - currentXP;
-      currentXP = totalXp - 140;
-    } else if (totalXp >= 500 && totalXp < 1000) {
-      levelTitle = "pro";
-      currentLevel = 3;
-      nextLevelRequiredXP = 1000 - currentXP;
+    if (totalXp >= 500 && totalXp < 2000) {
+      levelTitle = "rookie";
+      currentLevel = 2;  
+      nextLevelRequiredXP = 2000 - currentXP;
       currentXP = totalXp - 500;
+    } else if (totalXp >= 2000 && totalXp < 4000) {
+      levelTitle = "explorer";
+      currentLevel = 3;
+      nextLevelRequiredXP = 4000 - currentXP;
+      currentXP = totalXp - 2000;
+    } else if (totalXp >= 4000 && totalXp < 8000) {
+        levelTitle = "collector";
+        currentLevel = 4;
+        nextLevelRequiredXP = 8000 - currentXP;
+        currentXP = totalXp - 4000;
+    } else if (totalXp >= 8000 && totalXp < 16000) {
+        levelTitle = "collaborator";
+        currentLevel = 5;
+        nextLevelRequiredXP = 16000 - currentXP;
+        currentXP = totalXp - 8000;
+    }else if (totalXp >= 16000 && totalXp < 32000) {
+        levelTitle = "contributor";
+        currentLevel = 6;
+        nextLevelRequiredXP = 32000 - currentXP;
+        currentXP = totalXp - 16000;
+    }else if (totalXp >= 32000 && totalXp < 64000) {
+        levelTitle = "rising star";
+        currentLevel = 7;
+        nextLevelRequiredXP = 64000 - currentXP;
+        currentXP = totalXp - 32000;
+    }else if (totalXp >= 64000 && totalXp < 128000) {
+        levelTitle = "veteran";
+        currentLevel = 8;
+        nextLevelRequiredXP = 128000 - currentXP;
+        currentXP = totalXp - 64000;
+    }else if (totalXp >= 128000 && totalXp < 256000) {
+        levelTitle = "underdogg";
+        currentLevel = 9;
+        nextLevelRequiredXP = 256000 - currentXP;
+        currentXP = totalXp - 128000;
+    }else if (totalXp >= 256000 && totalXp < 512000) {
+        levelTitle = "maester";
+        currentLevel = 10;
+        nextLevelRequiredXP = 512000 - currentXP;
+        currentXP = totalXp - 256000;
     }
   
     const updatedProfile = {
@@ -220,7 +244,7 @@ const addPurchasedItemToUserService = async (tId, uId) => {
         } else {
             const result = await User.findOneAndUpdate(
                 { _id: currentUser._id },
-                {  $push: { "purchasedItems.tournaments": tId } },
+                {  $inc: { version: 1 }, $push: { "purchasedItems.tournaments": tId } },
                 { new: true }
             );
             
@@ -258,4 +282,5 @@ module.exports = {
     addGameAccountService,
     gameAccountConnectToUser,
     friendRequestService,
+    getfriendlistService,
 }

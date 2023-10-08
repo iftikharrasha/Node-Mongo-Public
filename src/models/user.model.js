@@ -230,7 +230,7 @@ const userSchema = new mongoose.Schema({
         },
         levelTitle: {
             type: String,
-            default: "ameture"
+            default: "newbie"
         },
         currentLevel: {
             type: Number,

@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const { generateToken, generateRefreshToken } = require("../utils/token");
-const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService, addGameAccountService, friendRequestService, gameAccountConnectToUser, updateXp } = require("../services/account.service");
+const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService, addGameAccountService, friendRequestService, getfriendlistService, gameAccountConnectToUser, updateXp } = require("../services/account.service");
 const { deleteTransactionByIdService } = require('../services/wallet.service');
 const { getVersionTableService } = require('../services/versionTable.service');
 
@@ -539,6 +539,49 @@ const friendRequest = async (req, res, next) => {
     }
 };
 
+const getfriendlist = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: [],
+        error: null
+    }
+    try {
+        const data = await getfriendlistService(req.params.id);
+
+        if (data) {
+            response.data = data;
+            // response.version = data.version;
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "No friends found!",
+                target: "database"
+            }
+        }
+    } catch (err) {
+        console.log(err);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred!",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+
+    res.send(response);
+}
+
 module.exports = {
     userSignup,
     userLogin,
@@ -548,4 +591,5 @@ module.exports = {
     getUsersList,
     addGameAccount,
     friendRequest,
+    getfriendlist
 }

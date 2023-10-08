@@ -33,6 +33,7 @@ router
 
 router
 .route('/friend/:id')
+.get(authentication, validateParams, accountControllers.getfriendlist)
 .post(authentication, validateParams, accountControllers.friendRequest);
 
 module.exports = router;

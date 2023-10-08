@@ -491,7 +491,7 @@ tournamentSchema.methods.addTournamentImagesTags = function() {
         tag = 'activision';
     } else if (category === 'fifa') {
         tournamentCover = 'https://fifauteam.com/images/stadiums/england/OldTrafford/24.webp';
-        tournamentThumbnail = 'https://fifauteam.com/images/stadiums/england/OldTrafford/24.webp';
+        tournamentThumbnail = 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTgawCVKb4ZCy_2whtPFbMsKifk95urcBKgF1UiW2PF50YuxbpIg-s64MVOK4UGp1wE4Qk&usqp=CAU';
         tag = 'ea';
     } else if (category === 'rocket league') {
         tournamentCover = 'https://variety.com/wp-content/uploads/2020/07/rocket-league.jpg?w=1000&h=563&crop=1&resize=1000%2C563';
