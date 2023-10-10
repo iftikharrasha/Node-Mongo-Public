@@ -2,6 +2,7 @@ const User = require("../models/user.model");
 const GameAccount = require("../models/gameaccount.model");
 
 const excludedUserFields = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -stats -socials -updatedAt -__v';
+const excludedUserFieldsForFriendList = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -stats -socials -updatedAt -__v -balance -emailAddress -gameAccounts -mobileNumber -permissions -purchasedItems -status';
 const excludedGameAccountFields = '-version -uId -updatedAt -createdAt -__v';
 
 const userSignupService = async (data) => {
@@ -98,13 +99,13 @@ const friendRequestService = async (data) => {
       
             // Remove the request from the sender's 'friend.sent'
             await User.findOneAndUpdate(
-              { _id: from },
-              { $inc: { version: 1 }, $pull: { 'requests.friend.sent': to } }
+              { _id: to },
+              { $inc: { version: 1 }, $pull: { 'requests.friend.sent': from } }
             );
             // Remove the request from the receiver's 'friend.pending'
             await User.findOneAndUpdate(
-              { _id: to },
-              { $inc: { version: 1 }, $pull: { 'requests.friend.pending': from } }
+              { _id: from },
+              { $inc: { version: 1 }, $pull: { 'requests.friend.pending': to } }
             );
             return { success: true, message: `Friend request accepted between ${from} and ${to}` };
   
@@ -141,10 +142,10 @@ const friendRequestService = async (data) => {
 
 const getfriendlistService = async (id) => {
     const currentProfile = await User.findOne({ _id: id })
-                                .select('requests.friend.mutuals requests.follow.follower')
+                                .select('requests.friend.sent requests.friend.mutuals requests.friend.pending requests.follow.following requests.follow.follower')
                                 .populate({
-                                    path: 'requests.friend.mutuals requests.follow.follower',
-                                    select: excludedUserFields,
+                                    path: 'requests.friend.sent requests.friend.mutuals requests.friend.pending requests.follow.following requests.follow.follower',
+                                    select: excludedUserFieldsForFriendList,
                                 });
     
     return currentProfile
@@ -195,7 +196,7 @@ const updateXp = async (id, newXp) => {
         nextLevelRequiredXP = 128000 - currentXP;
         currentXP = totalXp - 64000;
     }else if (totalXp >= 128000 && totalXp < 256000) {
-        levelTitle = "underdogg";
+        levelTitle = "Professional";
         currentLevel = 9;
         nextLevelRequiredXP = 256000 - currentXP;
         currentXP = totalXp - 128000;

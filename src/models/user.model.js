@@ -185,6 +185,18 @@ const userSchema = new mongoose.Schema({
             zipCode: null
         }
     },
+    country: {
+      type: String,
+      default: null
+    },
+    friends: { 
+        type: Number, 
+        default: 0 
+    },
+    followers: { 
+        type: Number, 
+        default: 0 
+    },
     requests: {
         follow: {
             following:  [{ type: ObjectId, ref: 'User'}],
@@ -230,7 +242,7 @@ const userSchema = new mongoose.Schema({
         },
         levelTitle: {
             type: String,
-            default: "newbie"
+            default: "underdog"
         },
         currentLevel: {
             type: Number,

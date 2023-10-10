@@ -153,7 +153,7 @@ async function initiateSocket(app, port) {
             // Add a user to a room
             socket.on('join_room', async (data) => {
                 // Data sent from client when join_room event emitted
-                const { userId, roomId, senderName, senderPhoto, stats, masterUsername, masterPhoto } = data;
+                const { userId, roomId, senderName, senderPhoto, stats, masterUsername, masterPhoto, country, friends, followers } = data;
                 chatRoomId = roomId;
 
                 socket.join(chatRoomId); // Join the user to a socket room
@@ -188,7 +188,7 @@ async function initiateSocket(app, port) {
                 }
 
                 //allusers are users of all rooms
-                allUsersByRoom[chatRoomId].push({ id: userId, socketId: socket.id, roomId: chatRoomId, userName: senderName, photo: senderPhoto, createdAt: createdAt, stats: stats });
+                allUsersByRoom[chatRoomId].push({ id: userId, socketId: socket.id, roomId: chatRoomId, userName: senderName, photo: senderPhoto, createdAt: createdAt, stats: stats, country: country, friends: friends, followers: followers });
 
                 //only send the users of this room, since a lot of users will be joining to other rooms as well
                 socket.to(chatRoomId).emit("chatroom_users", allUsersByRoom[chatRoomId]);
