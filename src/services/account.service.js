@@ -83,31 +83,27 @@ const friendRequestService = async (data) => {
                 { $inc: { version: 1 }, $push: { 'requests.friend.pending': from } }
             );
             
-            return { success: true, message: `Friend request sent from ${from} to ${to}` };
+            return { success: true, message: `You've sent a friend request`, xp: true };
   
         case 'friend_request_accept':
-            // Update the sender's 'friend.mutuals'
+            // Update the sender's 'friend.mutuals' and Remove the request from the receiver's 'friend.pending'
             await User.findOneAndUpdate(
               { _id: from },
-              { $inc: { version: 1 }, $push: { 'requests.friend.mutuals': to } }
+              { $inc: { version: 1, friends: 1 }, 
+                $push: { 'requests.friend.mutuals': to },
+                $pull: { 'requests.friend.pending': to }
+              }
             );
-            // Update the receiver's 'friend.mutuals'
+            // Update the receiver's 'friend.mutuals' and Remove the request from the sender's 'friend.sent'
             await User.findOneAndUpdate(
               { _id: to },
-              { $inc: { version: 1 }, $push: { 'requests.friend.mutuals': from } }
+              { $inc: { version: 1, friends: 1 }, 
+                $push: { 'requests.friend.mutuals': from },
+                $pull: { 'requests.friend.sent': from } 
+              }
             );
       
-            // Remove the request from the sender's 'friend.sent'
-            await User.findOneAndUpdate(
-              { _id: to },
-              { $inc: { version: 1 }, $pull: { 'requests.friend.sent': from } }
-            );
-            // Remove the request from the receiver's 'friend.pending'
-            await User.findOneAndUpdate(
-              { _id: from },
-              { $inc: { version: 1 }, $pull: { 'requests.friend.pending': to } }
-            );
-            return { success: true, message: `Friend request accepted between ${from} and ${to}` };
+            return { success: true, message: `You've made a new friend`, xp: true };
   
         case 'friend_request_reject':
             // Remove the request from the sender's 'friend.sent'
@@ -120,7 +116,7 @@ const friendRequestService = async (data) => {
                 { _id: from },
                 { $inc: { version: 1 }, $pull: { 'requests.friend.pending': to } }
             );
-            return { success: true, message: `Friend request rejected from ${from} to ${to}` };
+            return { success: true, message: `You've rejected the friend request`, xp: false };
         
         case 'friend_request_unfriend':
             // Remove from as a mutual friend of to
@@ -133,10 +129,10 @@ const friendRequestService = async (data) => {
                 { _id: from },
                 { $inc: { version: 1 }, $pull: { 'requests.friend.mutuals': to } }
             );
-            return { success: true, message: `${from} unfriended ${to}` };
+            return { success: true, message: `You succesfully unfirend the person`, xp: false };
   
         default:
-            return { success: false, message: 'Invalid request type' };
+            return { success: false, message: 'Invalid request type', xp: false };
     }
 };
 
@@ -159,53 +155,59 @@ const updateXp = async (id, newXp) => {
     let levelTitle = currentProfile.stats.levelTitle;
     let currentLevel = currentProfile.stats.currentLevel;
     let nextLevelRequiredXP = currentProfile.stats.nextLevelRequiredXP;
-  
-    if (totalXp >= 500 && totalXp < 2000) {
-      levelTitle = "rookie";
-      currentLevel = 2;  
-      nextLevelRequiredXP = 2000 - currentXP;
-      currentXP = totalXp - 500;
+
+    if (totalXp > 500 && totalXp < 2000) {
+        levelTitle = "rookie";
+        currentLevel = 2;  
+        nextLevelRequiredXP = 2000 - currentXP;
+        currentXP = totalXp - 500;
+    } else if (totalXp > 500 && totalXp < 2000) {
+        levelTitle = "explorer";
+        currentLevel = 3;  
+        nextLevelRequiredXP = 2000 - currentXP;
+        currentXP = totalXp - 500;
     } else if (totalXp >= 2000 && totalXp < 4000) {
-      levelTitle = "explorer";
-      currentLevel = 3;
-      nextLevelRequiredXP = 4000 - currentXP;
-      currentXP = totalXp - 2000;
-    } else if (totalXp >= 4000 && totalXp < 8000) {
         levelTitle = "collector";
         currentLevel = 4;
+        nextLevelRequiredXP = 4000 - currentXP;
+        currentXP = totalXp - 2000;
+    } else if (totalXp >= 4000 && totalXp < 8000) {
+        levelTitle = "collaborator";
+        currentLevel = 5;
         nextLevelRequiredXP = 8000 - currentXP;
         currentXP = totalXp - 4000;
     } else if (totalXp >= 8000 && totalXp < 16000) {
-        levelTitle = "collaborator";
-        currentLevel = 5;
-        nextLevelRequiredXP = 16000 - currentXP;
-        currentXP = totalXp - 8000;
-    }else if (totalXp >= 16000 && totalXp < 32000) {
         levelTitle = "contributor";
         currentLevel = 6;
-        nextLevelRequiredXP = 32000 - currentXP;
-        currentXP = totalXp - 16000;
-    }else if (totalXp >= 32000 && totalXp < 64000) {
+        nextLevelRequiredXP = 16000 - currentXP;
+        currentXP = totalXp - 8000;
+    } else if (totalXp >= 16000 && totalXp < 32000) {
         levelTitle = "rising star";
         currentLevel = 7;
+        nextLevelRequiredXP = 32000 - currentXP;
+        currentXP = totalXp - 16000;
+    } else if (totalXp >= 32000 && totalXp < 64000) {
+        levelTitle = "professional";
+        currentLevel = 8;
         nextLevelRequiredXP = 64000 - currentXP;
         currentXP = totalXp - 32000;
-    }else if (totalXp >= 64000 && totalXp < 128000) {
+    } else if (totalXp >= 64000 && totalXp < 128000) {
         levelTitle = "veteran";
-        currentLevel = 8;
+        currentLevel = 9;
         nextLevelRequiredXP = 128000 - currentXP;
         currentXP = totalXp - 64000;
-    }else if (totalXp >= 128000 && totalXp < 256000) {
-        levelTitle = "Professional";
-        currentLevel = 9;
-        nextLevelRequiredXP = 256000 - currentXP;
-        currentXP = totalXp - 128000;
-    }else if (totalXp >= 256000 && totalXp < 512000) {
+    } else if (totalXp >= 128000 && totalXp < 256000) {
         levelTitle = "maester";
         currentLevel = 10;
-        nextLevelRequiredXP = 512000 - currentXP;
-        currentXP = totalXp - 256000;
+        nextLevelRequiredXP = 256000 - currentXP;
+        currentXP = totalXp - 128000;
     }
+    // else if (totalXp >= 256000 && totalXp < 512000) {
+    //     levelTitle = "maester";
+    //     currentLevel = 10;
+    //     nextLevelRequiredXP = 512000 - currentXP;
+    //     currentXP = totalXp - 256000;
+    // }
   
     const updatedProfile = {
       ...currentProfile.toObject(),
@@ -225,7 +227,7 @@ const updateXp = async (id, newXp) => {
       updatedProfile,
       { new: true, runValidators: true }
     );
-  
+    
     return true;
   };
   

@@ -649,6 +649,7 @@ const tournamentRegistration = async (req, res, next) => {
         data: {},
         error: null,
         message: "Success",
+        xp: null
     }
     try {
         const tId = req.params.id;
@@ -661,27 +662,37 @@ const tournamentRegistration = async (req, res, next) => {
 
         // save or create
         const purchased = await addToPurchaseService(data);  //but check if user already has this purchased
-        // console.log("purchased", purchased);
+        console.log("1. purchased", purchased);
         if(purchased) {
             const transaction = await addPurchaseToTransactionsService(uId, purchased._id.toString());
-            // console.log("transaction", transaction);
+            console.log("2. transaction", transaction);
             if(transaction){
                 const tournament = await addUserToTournamentObjectLeaderboard(tId, uId);
-                // console.log("tournament", tournament);
+                console.log("3. tournament", tournament);
                 if(tournament){
                     const leaderboard = await addUserToLeaderboardService(tId, uId, gameId);
-                    // console.log("leaderboard", leaderboard);
+                    console.log("4. leaderboard", leaderboard);
                     if(leaderboard){
                         if(tournament.settings.competitionMode === "knockout"){
                             const bracket = await bookUserToBracketSlotService(tId, uId);
-                            // console.log("Bracket Push", bracket)
+                            console.log("5.1 Bracket Push", bracket)
                         }
-                        const xpAdd = await updateXp(uId, 100); //adding xp to the users account
                         const purchaseItem = await addPurchasedItemToUserService(tId, uId);
-
+                        console.log("5.2 purchaseItem", purchaseItem)
                         if(purchaseItem){
+                            const pointToBeAdded = 600;
+                            const xpAdd = await updateXp(uId, pointToBeAdded); //adding xp to the users account
+                            console.log("6. xpAdd", xpAdd)
+                            if(xpAdd){
+                                response.xp = [
+                                    `You've joined the tournament`,
+                                    `Unlocking XP points..`,
+                                    `You've earned ${pointToBeAdded}xp points`
+                                ]
+                            }
                             response.data = leaderboard;
                             response.message = "User registered successfully";
+                            res.send(response);
                         }else{
                             response.success = false;
                             response.status = 400;
@@ -691,6 +702,7 @@ const tournamentRegistration = async (req, res, next) => {
                                 message: "User is already registered",
                                 target: "client side api calling issue"
                             }
+                            res.send(response);
                         }
                     }else{
                         response.success = false;
@@ -701,6 +713,7 @@ const tournamentRegistration = async (req, res, next) => {
                             message: "Problem adding user to leaderboard",
                             target: "client side api calling issue"
                         }
+                        res.send(response);
                     }
                 }else{
                     response.success = false;
@@ -711,16 +724,18 @@ const tournamentRegistration = async (req, res, next) => {
                         message: "Problem adding user to tournament leaderboard",
                         target: "client side api calling issue"
                     }
+                    res.send(response);
                 }
             } else{
                 response.success = false;
                 response.status = 400;
-                response.message = "No transaction documment found for uId";
+                response.message = "Problem adding purchase to transaction";
                 response.error = {
                     code: 400,
-                    message: "No transaction documment found for uId",
+                    message: "Problem adding purchase to user transaction",
                     target: "client side api calling issue"
                 }
+                res.send(response);
             }
         }else{
             response.success = false;
@@ -731,9 +746,8 @@ const tournamentRegistration = async (req, res, next) => {
                 message: "Problem purchasing the item",
                 target: "client side api calling issue"
             }
+            res.send(response);
         }
-
-        res.send(response);
     } catch (error) {
         response.success = false;
         response.status = 400;

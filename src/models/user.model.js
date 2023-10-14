@@ -254,7 +254,7 @@ const userSchema = new mongoose.Schema({
         },
         nextLevelRequiredXP: {
             type: Number,
-            default: 140
+            default: 500
         },
         totalGamePlayed: {
             type: Number,

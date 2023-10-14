@@ -498,7 +498,8 @@ const friendRequest = async (req, res, next) => {
         signed_in: false,
         version: 1,
         data: {},
-        error: null
+        error: null,
+        xp: null,
     }
 
     try {
@@ -516,7 +517,19 @@ const friendRequest = async (req, res, next) => {
 
             return res.send(response);
         }
-        // const xpAdd = await updateXp(req.params.id, 50); //adding xp to the users account
+
+        if(result.xp){
+            const pointToBeAdded = 50;
+            const xpAdd = await updateXp(req.params.id, pointToBeAdded); //adding xp to the users account
+            if(xpAdd){
+                response.xp = [
+                    result.message,
+                    `Unlocking XP points..`,
+                    `You've earned ${pointToBeAdded}xp points`
+                ]
+            }
+        }
+
         response.data = req.body;
         response.version = result.version;
         response.message = result.message;
