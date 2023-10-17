@@ -1,4 +1,5 @@
 const User = require("../models/user.model");
+const Badge = require("../models/badge.model");
 const GameAccount = require("../models/gameaccount.model");
 
 const excludedUserFields = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -stats -socials -updatedAt -__v';
@@ -147,6 +148,18 @@ const getfriendlistService = async (id) => {
     return currentProfile
 };
 
+const addNewBadgeService = async (id, data) => {
+    const badge = await Badge.create(data);
+    return badge;
+};
+
+const getBadgeListService = async (id) => {
+    const siteBadges = await Badge.find({}).sort({createdAt: -1});
+    console.log("siteBadges", siteBadges)
+    
+    return siteBadges
+};
+
 const updateXp = async (id, newXp) => {
     const currentProfile = await User.findOne({ _id: id });
   
@@ -286,4 +299,6 @@ module.exports = {
     gameAccountConnectToUser,
     friendRequestService,
     getfriendlistService,
+    addNewBadgeService,
+    getBadgeListService,
 }

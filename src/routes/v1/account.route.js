@@ -36,4 +36,9 @@ router
 .get(authentication, validateParams, accountControllers.getfriendlist)
 .post(authentication, validateParams, accountControllers.friendRequest);
 
+router
+.route('/badge/:id')
+.get(authentication, validateParams, accountControllers.getBadgeList)
+.post(authentication, validateParams, accountControllers.addNewBadge);
+
 module.exports = router;

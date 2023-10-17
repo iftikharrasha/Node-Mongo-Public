@@ -687,7 +687,7 @@ const tournamentRegistration = async (req, res, next) => {
                                 response.xp = [
                                     `You've joined the tournament`,
                                     `Unlocking XP points..`,
-                                    `You've earned ${pointToBeAdded}xp points`
+                                    `You've earned +${pointToBeAdded} XP points`
                                 ]
                             }
                             response.data = leaderboard;

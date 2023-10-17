@@ -219,6 +219,7 @@ const userSchema = new mongoose.Schema({
           ref: 'Topup'
         }]
     },
+    badges: [{ type: ObjectId, ref: 'UsersBadge' }],
     stats: {
         totalTournamentPlayed: {
             type: Number,
@@ -238,7 +239,7 @@ const userSchema = new mongoose.Schema({
         },
         totalXp: {
             type: Number,
-            default: 0
+            default: 120
         },
         levelTitle: {
             type: String,
@@ -250,11 +251,11 @@ const userSchema = new mongoose.Schema({
         },
         currentXP: {
             type: Number,
-            default: 0
+            default: 120
         },
         nextLevelRequiredXP: {
             type: Number,
-            default: 500
+            default: 380
         },
         totalGamePlayed: {
             type: Number,
