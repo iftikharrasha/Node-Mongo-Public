@@ -39,6 +39,7 @@ router
 router
 .route('/badge/:id')
 .get(authentication, validateParams, accountControllers.getBadgeList)
-.post(authentication, validateParams, accountControllers.addNewBadge);
+.post(authentication, validateParams, accountControllers.addNewBadge)
+.patch(authentication, authorization("admin"), validateParams, accountControllers.updateSiteBadge);
 
 module.exports = router;

@@ -219,7 +219,7 @@ const userSchema = new mongoose.Schema({
           ref: 'Topup'
         }]
     },
-    badges: [{ type: ObjectId, ref: 'UsersBadge' }],
+    badgeRef: [{ type: ObjectId, ref: 'UsersBadge' }],
     stats: {
         totalTournamentPlayed: {
             type: Number,

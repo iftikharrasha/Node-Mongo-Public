@@ -1,5 +1,6 @@
 const User = require("../models/user.model");
 const Badge = require("../models/badge.model");
+const UsersBadge = require("../models/usersbadge.model");
 const GameAccount = require("../models/gameaccount.model");
 
 const excludedUserFields = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -stats -socials -updatedAt -__v';
@@ -155,9 +156,70 @@ const addNewBadgeService = async (id, data) => {
 
 const getBadgeListService = async (id) => {
     const siteBadges = await Badge.find({}).sort({createdAt: -1});
-    console.log("siteBadges", siteBadges)
+    // console.log("siteBadges", siteBadges)
     
     return siteBadges
+};
+
+const updateSiteBadgeService = async (id, data) => {
+    const currentBadge = await Badge.findById(id);
+
+    const updatedBadge = {
+        ...currentBadge.toObject(),
+        ...data,
+        version: currentBadge.version + 1 // increment the version field
+    };
+
+    const result = await Badge.findByIdAndUpdate({ _id: id }, updatedBadge, {
+      new: true,
+      runValidators: true
+    });
+    return result;
+};
+
+const addUsersBadgeService = async (uid, uName, slag) => {
+    const badge = await Badge.findOne({slag: slag});
+    const badgeFound = await UsersBadge.findOne({uId: uid, badge: badge._id});
+
+    if(badgeFound){
+        if (badgeFound.claimed) {
+            const xpAdd = await updateXp(uid, badge.xp);
+            //also add loots and gems, update profile schema
+            //claim api needs to be created
+            if (badge.once) {
+                if (!badgeFound.locked) {
+                    badgeFound.locked = true;
+                }
+            } 
+            
+            badgeFound.claimed = false;
+            badgeFound.level += 1;
+            badgeFound.xpTotal += badge.xp;
+            await badgeFound.save();
+        }
+
+        console.log("Item already exists and claimed");
+        return false;
+    }else{
+        //newly claiming the badge
+        const data = {
+            uId: uid,
+            uName: uName,
+            badge: badge._id,
+            xpTotal: badge.xp
+        }
+        const usersbadge = await UsersBadge.create(data);
+
+        if(usersbadge){
+            const result = await User.findOneAndUpdate(
+                { _id: uid },
+                {  $inc: { version: 1 }, $push: { "badgeRef": usersbadge._id } },
+                { new: true }
+            );
+        }
+
+        return true;
+    }
 };
 
 const updateXp = async (id, newXp) => {
@@ -242,7 +304,7 @@ const updateXp = async (id, newXp) => {
     );
     
     return true;
-  };
+};
   
 
 const deleteProfileByIdService = async (id) => {
@@ -301,4 +363,6 @@ module.exports = {
     getfriendlistService,
     addNewBadgeService,
     getBadgeListService,
+    updateSiteBadgeService,
+    addUsersBadgeService,
 }

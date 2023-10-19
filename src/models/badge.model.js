@@ -7,18 +7,14 @@ const badgeSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  instruction: {
-    type: String,
-    required: true
-  },
   icon: {
       type: String,
       validate: [validator.isURL, "Please provide a valid image url"],
       default: 'https://cdn-icons-png.flaticon.com/512/3179/3179458.png'
   },
-  xpReqToComplete: { 
-    type: Number, 
-    default: 120
+  instruction: {
+    type: String,
+    required: true
   },
   category: {
       type: String,
@@ -27,6 +23,30 @@ const badgeSchema = new mongoose.Schema({
           message: "{VALUE} is not a valid category!",
       },
       default: "user"
+  },
+  slag: { 
+    type: String, 
+    enum: {
+        values: ["create_account", "create_team", "join_tournament", "win_streak", "win_as_teammate", "win_as_captain", "runner_up", "third_place", "team_streak", "popularity", "reward_by_master", "gaming_machine", "patriot", "to_be_declared"],
+        message: "{VALUE} is not a valid category!",
+    },
+    default: "to_be_declared"
+  },
+  xp: { 
+    type: Number, 
+    default: 120
+  },
+  loots: { 
+    type: Number, 
+    default: 200
+  },
+  gems: { 
+    type: Number, 
+    default: 1
+  },
+  once: { 
+    type: Boolean,  
+    default: false
   },
   priority: { 
     type: Number, 

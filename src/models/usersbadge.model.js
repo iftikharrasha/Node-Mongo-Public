@@ -34,13 +34,17 @@ const usersbadgeSchema = new mongoose.Schema({
       type: Number, 
       default: 1 
     },
-    xpCompleted: { 
+    xpTotal: { 
       type: Number, 
-      default: 1 
+      default: 0 
     },
     claimed: { 
-      type: Number, 
-      default: 1 
+      type: Boolean,  
+      default: true 
+    },
+    locked: { 
+      type: Boolean,  
+      default: false 
     },
     version: { 
       type: Number, 
@@ -61,5 +65,5 @@ usersbadgeSchema.pre("save", async function (next) {
   next();
 });
 
-const UsersBadge = mongoose.model('usersbadge', badgeSchema);
+const UsersBadge = mongoose.model('usersbadge', usersbadgeSchema);
 module.exports = UsersBadge;

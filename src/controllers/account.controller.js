@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const { generateToken, generateRefreshToken } = require("../utils/token");
-const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService, addGameAccountService, friendRequestService, getfriendlistService, gameAccountConnectToUser, updateXp, addNewBadgeService, getBadgeListService } = require("../services/account.service");
+const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService, addGameAccountService, friendRequestService, getfriendlistService, gameAccountConnectToUser, updateXp, addNewBadgeService, getBadgeListService, updateSiteBadgeService, addUsersBadgeService } = require("../services/account.service");
 const { deleteTransactionByIdService } = require('../services/wallet.service');
 const { getVersionTableService } = require('../services/versionTable.service');
 
@@ -37,6 +37,7 @@ const userSignup = async (req, res) => {
                 target: "service issue"
             }
         }else{
+            // const usersbadge = await addUsersBadgeService(user._id, user.userName, "create_account");
             const cleanedProfile = _.omit(user.toObject(), ['password']);
             response.data = cleanedProfile;
         }
@@ -164,9 +165,27 @@ const userLogin = async (req, res, next) => {
                             }
                         });
                     }else{
+                        // const usersbadge = await addUsersBadgeService(req.user.sub, req.user.name, "join_tournament");
+                        const usersbadge = await addUsersBadgeService(user._id, user.userName, "create_account");
+            
+                        if(!usersbadge){
+                            console.log("Failed to create badge item")
+                            // return res.send({
+                            //     success: false,
+                            //     status: 400,
+                            //     data: {},
+                            //     signed_in: false,
+                            //     version: 1,
+                            //     error: { 
+                            //         code: 500, 
+                            //         message: "Failed to create badge item",
+                            //         target: "issue in userbadge service", 
+                            //     }
+                            // });
+                        }
+
                         const token = generateToken(user);
                         const refreshToken = generateRefreshToken(user);
-
                         const cleanedProfile = _.omit(user.toObject(), ['password']);
 
                         response.signed_in = true;
@@ -684,6 +703,54 @@ const getBadgeList = async (req, res, next) => {
     res.send(response);
 }
 
+const updateSiteBadge = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null
+    }
+
+    try {
+        const result = await updateSiteBadgeService(req.params.id, req.body);
+
+        if (!result) {
+            response.success = false;
+            response.status = 400;
+            response.message = "Data is not updated";
+            response.error = {
+                code: 400,
+                message: error.message,
+                target: "client side api calling issue"
+            }
+
+            return res.send(response);
+        }
+
+        response.data = result;
+        response.version = result.version;
+        response.message = "Badge updated successfully";
+
+        res.send(response);
+    } catch (err) {
+        console.log(err);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+};
+
 module.exports = {
     userSignup,
     userLogin,
@@ -695,5 +762,6 @@ module.exports = {
     friendRequest,
     getfriendlist,
     addNewBadge,
-    getBadgeList
+    getBadgeList,
+    updateSiteBadge
 }
