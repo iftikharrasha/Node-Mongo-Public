@@ -42,4 +42,8 @@ router
 .post(authentication, validateParams, accountControllers.addNewBadge)
 .patch(authentication, authorization("admin"), validateParams, accountControllers.updateSiteBadge);
 
+router
+.route('/badgeclaim/:slag/:id')
+.get(authentication, validateParams, accountControllers.claimMyBadge)
+
 module.exports = router;

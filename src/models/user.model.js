@@ -239,7 +239,15 @@ const userSchema = new mongoose.Schema({
         },
         totalXp: {
             type: Number,
-            default: 120
+            default: 100
+        },
+        totalLoots: {
+            type: Number,
+            default: 200
+        },
+        totalGems: {
+            type: Number,
+            default: 1
         },
         levelTitle: {
             type: String,

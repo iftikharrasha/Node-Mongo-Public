@@ -165,23 +165,12 @@ const userLogin = async (req, res, next) => {
                             }
                         });
                     }else{
-                        // const usersbadge = await addUsersBadgeService(req.user.sub, req.user.name, "join_tournament");
+                        //unhide
                         const usersbadge = await addUsersBadgeService(user._id, user.userName, "create_account");
+                        console.log(usersbadge.badge)
             
-                        if(!usersbadge){
-                            console.log("Failed to create badge item")
-                            // return res.send({
-                            //     success: false,
-                            //     status: 400,
-                            //     data: {},
-                            //     signed_in: false,
-                            //     version: 1,
-                            //     error: { 
-                            //         code: 500, 
-                            //         message: "Failed to create badge item",
-                            //         target: "issue in userbadge service", 
-                            //     }
-                            // });
+                        if(!usersbadge.success){
+                            console.log(usersbadge.message)
                         }
 
                         const token = generateToken(user);
@@ -464,7 +453,8 @@ const addGameAccount = async (req, res, next) => {
         signed_in: false,
         version: 1,
         data: {},
-        error: null
+        error: null,
+        xp: null
     }
 
     try {
@@ -484,7 +474,15 @@ const addGameAccount = async (req, res, next) => {
         }
         const connected = await gameAccountConnectToUser(req.params.id, result._id);
         if(connected){
-            const xpAdd = await updateXp(req.params.id, 50); //adding xp to the users account
+            const xpToBeAdded = 200;
+            const xpAdd = await updateXp(req.params.id, xpToBeAdded, 0, 0); //adding xp to the users account
+            if(xpAdd.success){
+                response.xp = [
+                    `You've successfully added your game account`,
+                    `Unlocking XP points..`,
+                    `You've earned +${xpToBeAdded} XP points`
+                ]
+            }
 
             const cleanedResult = _.omit(result.toObject(), ['version', 'uId', 'updatedAt', 'createdAt', '__v']);
             response.data = cleanedResult;
@@ -538,13 +536,13 @@ const friendRequest = async (req, res, next) => {
         }
 
         if(result.xp){
-            const pointToBeAdded = 50;
-            const xpAdd = await updateXp(req.params.id, pointToBeAdded); //adding xp to the users account
-            if(xpAdd){
+            const xpToBeAdded = 50;
+            const xpAdd = await updateXp(req.params.id, xpToBeAdded, 0, 0); //adding xp to the users account
+            if(xpAdd.success){
                 response.xp = [
                     result.message,
                     `Unlocking XP points..`,
-                    `You've earned +${pointToBeAdded} XP points`
+                    `You've earned +${xpToBeAdded} XP points`
                 ]
             }
         }
@@ -670,6 +668,7 @@ const getBadgeList = async (req, res, next) => {
         data: [],
         error: null
     }
+
     try {
         const data = await getBadgeListService(req.params.id);
 
@@ -681,6 +680,62 @@ const getBadgeList = async (req, res, next) => {
             response.error = {
                 code: 400,
                 message: "No badges found!",
+                target: "database"
+            }
+        }
+    } catch (err) {
+        console.log(err);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred!",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+
+    res.send(response);
+}
+
+const claimMyBadge = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {
+            badge: null,
+            stats: null,
+        },
+        error: null,
+        stats: null
+    }
+
+    try {
+        const usersbadge = await addUsersBadgeService(req.user.sub, req.user.name, req.params.slag);
+        console.log("2. stats", usersbadge.stats)
+        
+        if(!usersbadge.success){
+            console.log("3. stats", usersbadge.stats)
+            const badgeData = usersbadge.badge.toObject();
+            const statsData = usersbadge.stats.toObject();
+            response.data = {
+                badge: badgeData,
+                stats: statsData,
+            };
+            // response.data = usersbadge.badge;
+            // response.stats = usersbadge.stats;
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "Can not claim the badge!",
                 target: "database"
             }
         }
@@ -763,5 +818,6 @@ module.exports = {
     getfriendlist,
     addNewBadge,
     getBadgeList,
-    updateSiteBadge
+    updateSiteBadge,
+    claimMyBadge
 }

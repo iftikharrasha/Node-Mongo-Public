@@ -32,7 +32,7 @@ const usersbadgeSchema = new mongoose.Schema({
     badge: { type: ObjectId, ref: "Badge" },
     level: { 
       type: Number, 
-      default: 1 
+      default: 0 
     },
     xpTotal: { 
       type: Number, 

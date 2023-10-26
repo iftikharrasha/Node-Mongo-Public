@@ -155,10 +155,41 @@ const addNewBadgeService = async (id, data) => {
 };
 
 const getBadgeListService = async (id) => {
+    // Step 1: Fetch site badges
     const siteBadges = await Badge.find({}).sort({createdAt: -1});
-    // console.log("siteBadges", siteBadges)
     
-    return siteBadges
+    // Step 2: Fetch user's unlocked badges
+    const userBadges = await UsersBadge.find({ uId: id });
+
+    // Step 3: Create a mapping of user badges based on badge _id
+    const userBadgeMap = {};
+    for (const userBadge of userBadges) {
+      userBadgeMap[userBadge.badge.toString()] = userBadge;
+    }
+
+    // Step 4 and 5: Combine badge data
+    const badges = siteBadges.map((siteBadge) => {
+        const userBadge = userBadgeMap[siteBadge._id.toString()];
+        if (userBadge) {
+            return {
+                ...siteBadge.toObject(),
+                level: userBadge.level,
+                claimed: userBadge.claimed,
+                locked: userBadge.locked,
+                registered: true,
+            };
+        } else {
+            return {
+                ...siteBadge.toObject(),
+                level: 0, // Default level for locked/unclaimed badges
+                claimed: false,
+                locked: false,
+                registered: false,
+            };
+        }
+    });
+    
+    return badges
 };
 
 const updateSiteBadgeService = async (id, data) => {
@@ -179,13 +210,13 @@ const updateSiteBadgeService = async (id, data) => {
 
 const addUsersBadgeService = async (uid, uName, slag) => {
     const badge = await Badge.findOne({slag: slag});
-    const badgeFound = await UsersBadge.findOne({uId: uid, badge: badge._id});
+    let badgeFound = await UsersBadge.findOne({uId: uid, badge: badge._id});
 
     if(badgeFound){
         if (badgeFound.claimed) {
-            const xpAdd = await updateXp(uid, badge.xp);
-            //also add loots and gems, update profile schema
-            //claim api needs to be created
+            //when user is claiming it
+            const xpAdd = await updateXp(uid, badge.xp, badge.loots, badge.gems);
+
             if (badge.once) {
                 if (!badgeFound.locked) {
                     badgeFound.locked = true;
@@ -196,10 +227,23 @@ const addUsersBadgeService = async (uid, uName, slag) => {
             badgeFound.level += 1;
             badgeFound.xpTotal += badge.xp;
             await badgeFound.save();
-        }
 
-        console.log("Item already exists and claimed");
-        return false;
+            badgeFound.myStats = xpAdd.data.stats;
+
+            console.log("1. badgeFound with stats", xpAdd.data.stats)
+
+            return { success: false, message: "Item already exists and claimed", badge: badgeFound, stats: xpAdd.data.stats};
+        }else{
+            //when user is renewing it
+            if (!badge.locked && !badge.once) {
+                badgeFound.claimed = true;
+                await badgeFound.save();
+
+                return { success: false, message: "Item already exists and renewed", badge: badgeFound};
+            } else{
+                return { success: false, message: "Item already exists, locked and not possible to be renewed", badge: badgeFound};
+            }
+        }
     }else{
         //newly claiming the badge
         const data = {
@@ -218,27 +262,28 @@ const addUsersBadgeService = async (uid, uName, slag) => {
             );
         }
 
-        return true;
+        return { success: true, message: `Registered a new badge`, badge: usersbadge};
     }
 };
 
-const updateXp = async (id, newXp) => {
+const updateXp = async (id, newXp, newLoots, newGems) => {
     const currentProfile = await User.findOne({ _id: id });
-  
     const totalXp = currentProfile.stats.totalXp + newXp;
     let currentXP = currentProfile.stats.currentXP + newXp;
     let levelTitle = currentProfile.stats.levelTitle;
     let currentLevel = currentProfile.stats.currentLevel;
     let nextLevelRequiredXP = currentProfile.stats.nextLevelRequiredXP;
+    let totalLoots = currentProfile.stats.totalLoots + newLoots;
+    let totalGems = currentProfile.stats.totalGems + newGems;
 
-    if (totalXp > 500 && totalXp < 2000) {
+    if (totalXp > 0 && totalXp < 500) {
+        levelTitle = "underdog";
+        currentLevel = 1;  
+        nextLevelRequiredXP = 500 - currentXP;
+        currentXP = totalXp - 0;
+    } else if (totalXp >= 500 && totalXp < 2000) {
         levelTitle = "rookie";
         currentLevel = 2;  
-        nextLevelRequiredXP = 2000 - currentXP;
-        currentXP = totalXp - 500;
-    } else if (totalXp > 500 && totalXp < 2000) {
-        levelTitle = "explorer";
-        currentLevel = 3;  
         nextLevelRequiredXP = 2000 - currentXP;
         currentXP = totalXp - 500;
     } else if (totalXp >= 2000 && totalXp < 4000) {
@@ -289,6 +334,8 @@ const updateXp = async (id, newXp) => {
       stats: {
         ...currentProfile.stats,
         totalXp,
+        totalLoots,
+        totalGems,
         currentXP,
         levelTitle,
         currentLevel,
@@ -303,7 +350,7 @@ const updateXp = async (id, newXp) => {
       { new: true, runValidators: true }
     );
     
-    return true;
+    return { success: true, message: `XP updated`, data: result};
 };
   
 

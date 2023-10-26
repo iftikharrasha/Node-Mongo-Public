@@ -1,6 +1,6 @@
 const { getAllTournamentsService, getAllTournamentsFilteredService, getTournamentDetailsService, getTournamentResultService, createTournamentService, updateTournamentByIdService, updateTournamentCredentialsService, updateTournamentResultService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentBracketByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, bookUserToBracketSlotService, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
-const { addPurchasedItemToUserService, updateXp } = require("../services/account.service.js");
+const { addPurchasedItemToUserService, updateXp, addUsersBadgeService } = require("../services/account.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
 
 const getAllTournaments = async (req, res, next) => {
@@ -649,7 +649,8 @@ const tournamentRegistration = async (req, res, next) => {
         data: {},
         error: null,
         message: "Success",
-        xp: null
+        xp: null,
+        badge: null
     }
     try {
         const tId = req.params.id;
@@ -680,14 +681,22 @@ const tournamentRegistration = async (req, res, next) => {
                         const purchaseItem = await addPurchasedItemToUserService(tId, uId);
                         console.log("5.2 purchaseItem", purchaseItem)
                         if(purchaseItem){
-                            const pointToBeAdded = 600;
-                            const xpAdd = await updateXp(uId, pointToBeAdded); //adding xp to the users account
-                            console.log("6. xpAdd", xpAdd)
-                            if(xpAdd){
+                            const usersbadge = await addUsersBadgeService(req.user.sub, req.user.name, "join_tournament");
+                            console.log(usersbadge.badge)
+                            if(!usersbadge.success){
+                                //means already existed
+                                console.log(usersbadge.message)
+                            }else{
+                                //created badge
+                                response.badge = usersbadge.badge;
+                            }
+                            const xpToBeAdded = 600;
+                            const xpAdd = await updateXp(uId, xpToBeAdded, 0, 0); //adding xp to the users account
+                            if(xpAdd.success){
                                 response.xp = [
                                     `You've joined the tournament`,
                                     `Unlocking XP points..`,
-                                    `You've earned +${pointToBeAdded} XP points`
+                                    `You've earned +${xpToBeAdded} XP points`
                                 ]
                             }
                             response.data = leaderboard;
