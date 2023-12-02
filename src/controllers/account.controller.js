@@ -37,7 +37,13 @@ const userSignup = async (req, res) => {
                 target: "service issue"
             }
         }else{
-            // const usersbadge = await addUsersBadgeService(user._id, user.userName, "create_account");
+            const usersbadge = await addUsersBadgeService(user._id, user.userName, "create_account");
+            console.log(usersbadge.badge)
+
+            if(!usersbadge.success){
+                console.log(usersbadge.message)
+            }
+
             const cleanedProfile = _.omit(user.toObject(), ['password']);
             response.data = cleanedProfile;
         }
@@ -165,13 +171,12 @@ const userLogin = async (req, res, next) => {
                             }
                         });
                     }else{
-                        //unhide
-                        const usersbadge = await addUsersBadgeService(user._id, user.userName, "create_account");
-                        console.log(usersbadge.badge)
+                        // const usersbadge = await addUsersBadgeService(user._id, user.userName, "create_account");
+                        // console.log(usersbadge.badge)
             
-                        if(!usersbadge.success){
-                            console.log(usersbadge.message)
-                        }
+                        // if(!usersbadge.success){
+                        //     console.log(usersbadge.message)
+                        // }
 
                         const token = generateToken(user);
                         const refreshToken = generateRefreshToken(user);
@@ -474,6 +479,13 @@ const addGameAccount = async (req, res, next) => {
         }
         const connected = await gameAccountConnectToUser(req.params.id, result._id);
         if(connected){
+            const usersbadge = await addUsersBadgeService(req.user.sub, req.user.name, "gaming_machine");
+            console.log(usersbadge.badge)
+
+            if(!usersbadge.success){
+                console.log(usersbadge.message)
+            }
+
             const xpToBeAdded = 200;
             const xpAdd = await updateXp(req.params.id, xpToBeAdded, 0, 0); //adding xp to the users account
             if(xpAdd.success){
@@ -718,18 +730,15 @@ const claimMyBadge = async (req, res, next) => {
 
     try {
         const usersbadge = await addUsersBadgeService(req.user.sub, req.user.name, req.params.slag);
+        console.log("message", usersbadge.message)
         console.log("2. stats", usersbadge.stats)
         
         if(!usersbadge.success){
             console.log("3. stats", usersbadge.stats)
-            const badgeData = usersbadge.badge.toObject();
-            const statsData = usersbadge.stats.toObject();
             response.data = {
-                badge: badgeData,
-                stats: statsData,
+                badge: usersbadge.badge.toObject(),
+                stats: usersbadge.stats ? usersbadge.stats.toObject() : null,
             };
-            // response.data = usersbadge.badge;
-            // response.stats = usersbadge.stats;
         }else{
             response.success = false;
             response.status = 400;

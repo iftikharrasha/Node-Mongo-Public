@@ -239,9 +239,9 @@ const addUsersBadgeService = async (uid, uName, slag) => {
                 badgeFound.claimed = true;
                 await badgeFound.save();
 
-                return { success: false, message: "Item already exists and renewed", badge: badgeFound};
+                return { success: false, message: "Item already exists and renewed", badge: badgeFound, stats: null};
             } else{
-                return { success: false, message: "Item already exists, locked and not possible to be renewed", badge: badgeFound};
+                return { success: false, message: "Item already exists, locked and not possible to be renewed", badge: badgeFound, stats: null};
             }
         }
     }else{
@@ -262,7 +262,7 @@ const addUsersBadgeService = async (uid, uName, slag) => {
             );
         }
 
-        return { success: true, message: `Registered a new badge`, badge: usersbadge};
+        return { success: true, message: `Registered a new badge`, badge: usersbadge, stats: null};
     }
 };
 

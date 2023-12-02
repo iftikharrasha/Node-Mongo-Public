@@ -239,15 +239,15 @@ const userSchema = new mongoose.Schema({
         },
         totalXp: {
             type: Number,
-            default: 100
+            default: 0
         },
         totalLoots: {
             type: Number,
-            default: 200
+            default: 0
         },
         totalGems: {
             type: Number,
-            default: 1
+            default: 0
         },
         levelTitle: {
             type: String,
@@ -259,11 +259,11 @@ const userSchema = new mongoose.Schema({
         },
         currentXP: {
             type: Number,
-            default: 120
+            default: 0
         },
         nextLevelRequiredXP: {
             type: Number,
-            default: 380
+            default: 500
         },
         totalGamePlayed: {
             type: Number,

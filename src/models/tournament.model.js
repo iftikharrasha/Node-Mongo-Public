@@ -21,10 +21,10 @@ const settingsSchema = new mongoose.Schema({
     feeType: {
         type: String,
         enum: {
-            values: ["money", "gems", "xp"],
+            values: ["gems", "money", "free"],
             message: "{VALUE} is not a valid feeType!",
         },
-        default: 'money'
+        default: 'free'
     },
     mode: {
         type: String,
@@ -264,7 +264,7 @@ const tournamentSchema = new mongoose.Schema({
         type: settingsSchema,
         default: {
             joiningFee: 0,
-            feeType: 'money',
+            feeType: 'free',
             mode: "solo",
             maxParticipitant: 2,
             rounds: 1,
@@ -486,7 +486,7 @@ tournamentSchema.methods.addTournamentImagesTags = function() {
         tournamentThumbnail = 'https://i.pinimg.com/originals/7b/23/2c/7b232ccb015d9c21143b6ccd67038e63.jpg';
         tag = 'faceit';
     } else if (category === 'warzone') {
-        tournamentCover = 'https://e24reactor-s3-bucket.s3.amazonaws.com/images/tournaments/5442ff27-ed75-49c8-a2c9-6631f34264e2-download.jpg';
+        tournamentCover = 'https://static1.thegamerimages.com/wordpress/wp-content/uploads/2020/03/warzone-dropping-in-to-the-map-modern-warfare.jpg';
         tournamentThumbnail = 'https://e24reactor-s3-bucket.s3.amazonaws.com/images/tournaments/5442ff27-ed75-49c8-a2c9-6631f34264e2-download.jpg';
         tag = 'activision';
     } else if (category === 'fifa') {

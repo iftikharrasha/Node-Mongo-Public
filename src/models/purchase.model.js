@@ -20,7 +20,7 @@ const purchaseSchema = new mongoose.Schema({
     currency: { 
         type: String,
         enum: {
-            values: ["bdt", "usd", "sar", "etoken"],
+            values: ["usd", "gems"],
             message: "{VALUE} is not a valid currency",
         },
         default: 'usd'
@@ -32,10 +32,10 @@ const purchaseSchema = new mongoose.Schema({
     method: { 
         type: String,
         enum: {
-            values: ["bkash", "card", "balance"],
+            values: ["gems", "card", "balance", "free"],
             message: "{VALUE} is not a valid method",
         },
-        default: 'balance' 
+        default: 'free' 
     },
     remarks: { 
         type: String,
