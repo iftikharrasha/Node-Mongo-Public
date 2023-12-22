@@ -28,6 +28,36 @@ const findUserById = async (id) => {
                     });
 };
 
+const findUserByUsername = async (userName) => {
+    return await User.findOne({ userName })
+                    .select('_id');
+};
+
+const checkIfUserIsMutual = async (uid, userId) => {
+    const user = await User.findOne({ _id: uid, 'requests.friend.mutuals': userId });
+    return user;
+};
+
+const verifyMembersService = async (uid, members) => {
+    const verifiedMembers = [];
+
+    for (const member of members) {
+        const user = await findUserByUsername(member);
+        if (user) {
+            const friend = await checkIfUserIsMutual(uid, user._id);
+            if (friend) {
+                verifiedMembers.push(user._id.toString());
+            } else {
+                return { success: false, message: `${member}: is not your friend`, members: verifiedMembers};
+            }
+        } else {
+            return { success: false, message: `${member}: Username does not exist`, members: verifiedMembers};
+        }
+    }
+
+    return { success: true, message: 'All members exists', members: verifiedMembers};
+};
+
 const updateProfileByIdService = async (id, data) => {
     const currentProfile = await User.findById(id);
 
@@ -412,4 +442,5 @@ module.exports = {
     getBadgeListService,
     updateSiteBadgeService,
     addUsersBadgeService,
+    verifyMembersService
 }

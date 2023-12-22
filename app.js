@@ -4,6 +4,7 @@ const cors = require('cors');
 const accountRoute = require('./src/routes/v1/account.route.js');
 const tournamentRoute = require('./src/routes/v1/tournament.route.js');
 const teamRoute = require('./src/routes/v1/team.route.js');
+const partyRoute = require('./src/routes/v1/party.route.js');
 const staticRoute = require('./src/routes/v1/statics.route.js');
 const walletRoute = require('./src/routes/v1/wallet.route.js');
 const uploadRoute = require('./src/routes/v1/upload.route.js');
@@ -17,6 +18,7 @@ app.use("/api/v1/account", accountRoute)
 app.use("/api/v1/tournaments", tournamentRoute)
 app.use("/api/v1/statics", staticRoute)
 app.use("/api/v1/teams", teamRoute)
+app.use("/api/v1/party", partyRoute)
 app.use("/api/v1/wallet", walletRoute)
 app.use("/api/v1/upload", uploadRoute)
 

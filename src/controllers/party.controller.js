@@ -1,8 +1,8 @@
 
-const { getAllTeamsService, getMyTeamsByIdService, createTeamService } = require("../services/team.service");
+const { createPartyService, getAllPartiesService } = require("../services/party.service");
 const { getVersionTableService } = require("../services/versionTable.service");
 
-const getAllTeams = async (req, res, next) => {
+const getAllParties = async (req, res, next) => {
     try{
         let response = {
             success: true,
@@ -26,13 +26,13 @@ const getAllTeams = async (req, res, next) => {
             const clientVersion = parseInt(req.query.version);
             
             try {
-                const data = await getAllTeamsService();
+                const data = await getAllPartiesService();
                 const versionData = await getVersionTableService();
 
                 if (data.length > 0) {
                     try {
                         let serverVersion = 0;
-                        const tableData = versionData.find( item => item.table === "teams");
+                        const tableData = versionData.find( item => item.table === "parties");
                         if (tableData && tableData.version) {
                             serverVersion = tableData.version;
                         }
@@ -84,72 +84,72 @@ const getAllTeams = async (req, res, next) => {
     }
 }
 
-const getMyTeamsById = async (req, res, next) => {
-    let response = {
-        success: true,
-        status: 200,
-        version: 1,
-        data: {},
-        error: null,
-    }
-    try {
-        const clientVersion = parseInt(req.query.version);
-        const data = await getMyTeamsByIdService(req.params.id);
-        const versionData = await getVersionTableService();
+// const getMyTeamsById = async (req, res, next) => {
+//     let response = {
+//         success: true,
+//         status: 200,
+//         version: 1,
+//         data: {},
+//         error: null,
+//     }
+//     try {
+//         const clientVersion = parseInt(req.query.version);
+//         const data = await getMyTeamsByIdService(req.params.id);
+//         const versionData = await getVersionTableService();
 
-        if(!data){
-            response.success = false;
-            response.status = 400;
-            response.error = {
-                code: 400,
-                message: "No teams found!",
-                target: "database"
-            }
-        }else{
-            try {
-                let serverVersion = 0;
-                const tableData = versionData.find( item => item.table === "teams");
-                if (tableData && tableData.version) {
-                    serverVersion = tableData.version;
-                }
+//         if(!data){
+//             response.success = false;
+//             response.status = 400;
+//             response.error = {
+//                 code: 400,
+//                 message: "No teams found!",
+//                 target: "database"
+//             }
+//         }else{
+//             try {
+//                 let serverVersion = 0;
+//                 const tableData = versionData.find( item => item.table === "teams");
+//                 if (tableData && tableData.version) {
+//                     serverVersion = tableData.version;
+//                 }
 
-                if (serverVersion > clientVersion) {
-                    response.data = data;
-                    response.version = serverVersion;
-                }else {
-                    response.status = 304;
-                    response.version = serverVersion;
-                    response.error = {
-                        code: 304,
-                        message: "Client have the latest version",
-                        target: "fetch data from the redux store"
-                    }
-                }
-            } catch (err) {
-                response.data = null;
-                response.success = false;
-                response.status = 500;
-                response.version = serverVersion;
-                response.error = {
-                    code: 500,
-                    message: "An Internal Error Has Occurred!",
-                    target: "approx what the error came from"
-                }
-            }
-        }
-    } catch (error) {
-        response.success = false;
-        response.status = 500;
-        response.error = { 
-            code: 500, 
-            message: "An Internal Error Has Occurred!",
-            target: "approx what the error came from", 
-        }
-    }
-    res.send(response);
-};
+//                 if (serverVersion > clientVersion) {
+//                     response.data = data;
+//                     response.version = serverVersion;
+//                 }else {
+//                     response.status = 304;
+//                     response.version = serverVersion;
+//                     response.error = {
+//                         code: 304,
+//                         message: "Client have the latest version",
+//                         target: "fetch data from the redux store"
+//                     }
+//                 }
+//             } catch (err) {
+//                 response.data = null;
+//                 response.success = false;
+//                 response.status = 500;
+//                 response.version = serverVersion;
+//                 response.error = {
+//                     code: 500,
+//                     message: "An Internal Error Has Occurred!",
+//                     target: "approx what the error came from"
+//                 }
+//             }
+//         }
+//     } catch (error) {
+//         response.success = false;
+//         response.status = 500;
+//         response.error = { 
+//             code: 500, 
+//             message: "An Internal Error Has Occurred!",
+//             target: "approx what the error came from", 
+//         }
+//     }
+//     res.send(response);
+// };
 
-const addANewTeam = async (req, res, next) => {
+const addANewParty = async (req, res, next) => {
     let response = {
         success: true,
         status: 200,
@@ -160,10 +160,10 @@ const addANewTeam = async (req, res, next) => {
     }
     try {
         // save or create
-        const result = await createTeamService(req.body);
+        const result = await createPartyService(req.body);
 
         response.data = result;
-        response.message = "Team created successfully";
+        response.message = "Party created successfully";
 
         res.send(response);
     } catch (error) {
@@ -181,7 +181,8 @@ const addANewTeam = async (req, res, next) => {
 };
 
 module.exports = {
-    getAllTeams,
-    getMyTeamsById,
-    addANewTeam,
+    // getAllTeams,
+    // getMyTeamsById,
+    addANewParty,
+    getAllParties
 }

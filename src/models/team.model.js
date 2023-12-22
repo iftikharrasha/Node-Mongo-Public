@@ -80,12 +80,12 @@ const teamSchema = new mongoose.Schema({
     photo: {
         type: String,
         validate: [validator.isURL, "Please provide a valid image url"],
-        default: 'https://i.ibb.co/5FFYTs7/avatar.jpg'
+        default: 'https://pbs.twimg.com/profile_images/1648571357171679233/kVd8vhxW_400x400.jpg'
     },
     coverPhoto: {
         type: String,
         validate: [validator.isURL, "Please provide a valid image url"],
-        default: 'https://i.ibb.co/dkCdrxk/cover-Image.jpg'
+        default: 'https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/393380/8c58d098e9d2238ccea5d241d4fecde88b5e3481.jpg'
     },
     status: {
         type: String,
@@ -99,10 +99,14 @@ const teamSchema = new mongoose.Schema({
         type: Number, 
         default: 1 
     },
-    members: [{
-        type: ObjectId,
-        ref: "User"
-    }],
+    // members: [{
+    //     type: ObjectId,
+    //     ref: "User"
+    // }],
+    members: {
+        invited: [{ type: ObjectId, ref: 'User'}],
+        mates: [{ type: ObjectId, ref: 'User'}],
+    },
     stats: {
         type: statsSchema,
         default: {

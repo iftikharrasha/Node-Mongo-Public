@@ -46,4 +46,8 @@ router
 .route('/badgeclaim/:slag/:id')
 .get(authentication, validateParams, accountControllers.claimMyBadge)
 
+router
+.route('/verifyMembers/:id')
+.post(authentication, validateParams, accountControllers.verifyMembers)
+
 module.exports = router;
