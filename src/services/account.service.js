@@ -6,6 +6,7 @@ const GameAccount = require("../models/gameaccount.model");
 const excludedUserFields = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -stats -socials -updatedAt -__v';
 const excludedUserFieldsForFriendList = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -stats -socials -updatedAt -__v -balance -emailAddress -gameAccounts -mobileNumber -permissions -purchasedItems -status';
 const excludedGameAccountFields = '-version -uId -updatedAt -createdAt -__v';
+const excludedPartyFields = '-version -owner -photo -coverPhoto -privacy -questions -members -tournaments -status -__v';
 
 const userSignupService = async (data) => {
     const user = await User.create(data);
@@ -17,7 +18,11 @@ const findUserByEmail = async (emailAddress) => {
                     .populate({
                         path: 'gameAccounts',
                         select: excludedGameAccountFields,
-                    });
+                    })
+                    .populate({
+                        path: 'parties.owner',
+                        select: excludedPartyFields,
+                    })
 };
 
 const findUserById = async (id) => {
@@ -25,7 +30,11 @@ const findUserById = async (id) => {
                     .populate({
                         path: 'gameAccounts',
                         select: excludedGameAccountFields,
-                    });
+                    })
+                    .populate({
+                        path: 'parties.owner',
+                        select: excludedPartyFields,
+                    })
 };
 
 const findUserByUsername = async (userName) => {

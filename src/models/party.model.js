@@ -35,6 +35,7 @@ const partySchema = new mongoose.Schema({
         type: [String],
         default: ['NA']
     },
+    answers: [{ type: ObjectId, ref: 'Answer'}],
     members: {
         invited: [{ type: ObjectId, ref: 'User'}],
         requested: [{ type: ObjectId, ref: 'User'}],

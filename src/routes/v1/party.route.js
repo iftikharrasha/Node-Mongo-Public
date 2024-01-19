@@ -14,8 +14,17 @@ router
 .get(partyControllers.getAllParties)
 .post(authentication, authorization("master", "admin"), partyControllers.addANewParty)
 
-// router
-// .route("/my/:id")
-// .get(authentication, validateVersion, validateParams, teamControllers.getMyTeamsById)
+router
+.route('/:id')
+.get(validateVersion, validateParams, partyControllers.getPartyDetails)
+.post(authentication, validateParams, partyControllers.addUserToParty)
+
+router
+.route("/events/:id")
+.get(authentication, validateVersion, validateParams, partyControllers.getPartyEventsById)
+
+router
+.route('/people/:id')
+.get(authentication, validateParams, partyControllers.getPartyPeoplelist)
 
 module.exports = router;

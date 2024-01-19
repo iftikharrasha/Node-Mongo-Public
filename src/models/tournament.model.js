@@ -231,6 +231,10 @@ const tournamentSchema = new mongoose.Schema({
         },
         required: true
     },
+    party:{ 
+        type: ObjectId, 
+        ref: "Party" 
+    },
     status: {
         type: String,
         enum: {

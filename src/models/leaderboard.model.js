@@ -16,8 +16,6 @@ const leaderboardSchema = new mongoose.Schema({
     type: Number, 
     default: 1 
   },
-  // 1. PREVIOUSONE
-  //leaderboards: [{ type: ObjectId, ref: "User" }]
   leaderboards: [
     {
         gamer: {

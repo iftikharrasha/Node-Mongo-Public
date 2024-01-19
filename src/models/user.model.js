@@ -208,6 +208,10 @@ const userSchema = new mongoose.Schema({
             pending:  [{ type: ObjectId, ref: 'User'}],
         },
     },
+    parties: {
+        owner: [{ type: ObjectId, ref: 'Party'}],
+        joined: [{ type: ObjectId, ref: 'Party'}],
+    },
     teams: [{ type: ObjectId, ref: 'Team' }],
     purchasedItems: {
         tournaments: [{
