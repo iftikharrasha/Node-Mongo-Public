@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const { generateToken, generateRefreshToken } = require("../utils/token");
-const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService, addGameAccountService, friendRequestService, getfriendlistService, gameAccountConnectToUser, updateXp, addNewBadgeService, getBadgeListService, updateSiteBadgeService, addUsersBadgeService, verifyMembersService } = require("../services/account.service");
+const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService, addGameAccountService, friendRequestService, getfriendlistService, gameAccountConnectToUser, updateXp, addNewBadgeService, getBadgeListService, updateSiteBadgeService, addUsersBadgeService, verifyTeamMemberAddService } = require("../services/account.service");
 const { deleteTransactionByIdService } = require('../services/wallet.service');
 const { getVersionTableService } = require('../services/versionTable.service');
 
@@ -332,7 +332,7 @@ const updateProfileById = async (req, res, next) => {
     }
 };
 
-const verifyMembers = async (req, res, next) => {
+const verifyTeamMemberAdd = async (req, res, next) => {
     let response = {
         success: true,
         status: 200,
@@ -344,7 +344,7 @@ const verifyMembers = async (req, res, next) => {
     }
 
     try {
-        const result = await verifyMembersService(req.params.id, req.body);
+        const result = await verifyTeamMemberAddService(req.params.id, req.body);
         response.success = result.success;
         response.message = result.message;
         response.data = result.members;
@@ -860,5 +860,5 @@ module.exports = {
     getBadgeList,
     updateSiteBadge,
     claimMyBadge,
-    verifyMembers
+    verifyTeamMemberAdd
 }

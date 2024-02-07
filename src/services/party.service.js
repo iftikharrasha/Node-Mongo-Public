@@ -32,7 +32,7 @@ const createPartyService = async (data) => {
 }
 
 const addPartyToUserService = async (uId, partyId) => {
-    //pushing tournament id inside the user
+    //pushing party id inside the user
     const currentUser = await User.findOne({ _id: uId });
 
     if(currentUser){

@@ -47,7 +47,7 @@ router
 .get(authentication, validateParams, accountControllers.claimMyBadge)
 
 router
-.route('/verifyMembers/:id')
-.post(authentication, validateParams, accountControllers.verifyMembers)
+.route('/verifyTeamMemberAdd/:id')
+.post(authentication, validateParams, accountControllers.verifyTeamMemberAdd)
 
 module.exports = router;

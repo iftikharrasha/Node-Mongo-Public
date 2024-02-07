@@ -4,7 +4,7 @@ const UsersBadge = require("../models/usersbadge.model");
 const GameAccount = require("../models/gameaccount.model");
 
 const excludedUserFields = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -stats -socials -updatedAt -__v';
-const excludedUserFieldsForFriendList = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -stats -socials -updatedAt -__v -balance -emailAddress -gameAccounts -mobileNumber -permissions -purchasedItems -status';
+const excludedUserFieldsForFriendList = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -stats -socials -updatedAt -__v -balance -emailAddress -gameAccounts -mobileNumber -permissions -purchasedItems -status -parties -badgeRef';
 const excludedGameAccountFields = '-version -uId -updatedAt -createdAt -__v';
 const excludedPartyFields = '-version -owner -photo -coverPhoto -privacy -questions -members -tournaments -status -__v';
 
@@ -47,24 +47,41 @@ const checkIfUserIsMutual = async (uid, userId) => {
     return user;
 };
 
-const verifyMembersService = async (uid, members) => {
+const checkIfUserAlreadyBelongsToSimilarTeam = async (cat, userId) => {
+    const user = await User.findById(userId).populate('teams');;
+    const teams = user.teams || [];
+
+    const alreadyInATeam = teams.some(team => team.category === cat);
+
+    return alreadyInATeam;
+};
+
+const verifyTeamMemberAddService = async (uid, data) => {
     const verifiedMembers = [];
+    const members = data.members;
+    const category = data.category;
 
     for (const member of members) {
         const user = await findUserByUsername(member);
         if (user) {
             const friend = await checkIfUserIsMutual(uid, user._id);
             if (friend) {
-                verifiedMembers.push(user._id.toString());
+                const alreadyInATeam = await checkIfUserAlreadyBelongsToSimilarTeam(category, user._id);
+                if(alreadyInATeam){
+                    return { success: false, message: `Player ${member} already belongs to a ${category} team`, members: verifiedMembers};
+                }else{
+                    verifiedMembers.push(user._id.toString());
+                }
+                // verifiedMembers.push(user._id.toString());
             } else {
-                return { success: false, message: `${member}: is not your friend`, members: verifiedMembers};
+                return { success: false, message: `Player '${member}' is not your friend`, members: verifiedMembers};
             }
         } else {
-            return { success: false, message: `${member}: Username does not exist`, members: verifiedMembers};
+            return { success: false, message: `Player '${member}' does not exist`, members: verifiedMembers};
         }
     }
 
-    return { success: true, message: 'All members exists', members: verifiedMembers};
+    return { success: true, message: 'Players are okay to invite', members: verifiedMembers};
 };
 
 const updateProfileByIdService = async (id, data) => {
@@ -451,5 +468,5 @@ module.exports = {
     getBadgeListService,
     updateSiteBadgeService,
     addUsersBadgeService,
-    verifyMembersService
+    verifyTeamMemberAddService
 }

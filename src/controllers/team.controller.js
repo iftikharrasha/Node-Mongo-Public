@@ -1,5 +1,5 @@
 
-const { getAllTeamsService, getMyTeamsByIdService, createTeamService } = require("../services/team.service");
+const { getAllTeamsService, getMyTeamsByIdService, createTeamService, addTeamToUserService } = require("../services/team.service");
 const { getVersionTableService } = require("../services/versionTable.service");
 
 const getAllTeams = async (req, res, next) => {
@@ -160,12 +160,38 @@ const addANewTeam = async (req, res, next) => {
     }
     try {
         // save or create
-        const result = await createTeamService(req.body);
-
-        response.data = result;
-        response.message = "Team created successfully";
-
-        res.send(response);
+        const team = await createTeamService(req.body);
+        if(team){
+            const teamOwner = await addTeamToUserService(req.body.captainId, team._id.toString());
+            if(teamOwner){
+                response.data = team;
+                response.message = "Team created successfully";
+        
+                res.send(response);
+            }else{
+                response.success = false;
+                response.status = 400;
+                response.message = "Problem adding team to user object";
+                response.error = {
+                    code: 400,
+                    message: "Problem adding team to user object",
+                    target: "client side api calling issue"
+                }
+        
+                res.send(response);
+            }
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.message = "Problem creating the team";
+            response.error = {
+                code: 400,
+                message: "Problem creating the team",
+                target: "client side api calling issue"
+            }
+    
+            res.send(response);
+        }
     } catch (error) {
         response.success = false;
         response.status = 400;
