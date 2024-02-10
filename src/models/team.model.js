@@ -160,6 +160,31 @@ teamSchema.pre("save", async function (next) {
     next();
 });
 
+teamSchema.pre('findOneAndUpdate', async function (next) {
+    // Update version table
+    const versionTable = await Version.findOne({ table: 'teams' });
+    if (versionTable) {
+        const updatedVersion = versionTable.version + 1;
+        await versionTable.updateOne({ version: updatedVersion });
+        console.log('teams version: ' + versionTable.version, updatedVersion)
+
+        // Invalidate the cache for tournaments
+        // const key = `/api/v1/teams?version=${updatedVersion}`;
+        // // Invalidate multiple cache keys
+        // const keys = [
+        //     `/api/v1/teams?version=${versionTable.version}`,
+        //     '/api/v1/other-endpoint',
+        //     // Add more keys here
+        // ];
+        // console.log('Invalidating', key);
+        // cache.del(key); 
+    } else {
+      await Version.create({ table: 'teams', version: 1 });
+    }
+
+    next();
+});
+
 const Team = mongoose.model('Team', teamSchema);
 module.exports = Team;
 

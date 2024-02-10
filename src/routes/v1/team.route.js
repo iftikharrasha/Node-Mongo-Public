@@ -15,7 +15,16 @@ router
 .post(authentication, teamControllers.addANewTeam)
 
 router
+.route('/:id')
+.get(validateVersion, validateParams, teamControllers.getTeamDetails)
+
+router
 .route("/my/:id")
 .get(authentication, validateVersion, validateParams, teamControllers.getMyTeamsById)
+
+router
+.route('/members/:id')
+.get(authentication, validateParams, teamControllers.getTeamPeoplelist)
+.post(authentication, validateParams, teamControllers.teamJoinRequest);
 
 module.exports = router;

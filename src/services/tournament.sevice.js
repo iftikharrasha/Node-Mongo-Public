@@ -22,9 +22,10 @@ const getAllTournamentsService = async () => {
             ...tournament,
             tournamentStage: calculateTournamentStatus(tournament.dates),
         };
-      });
+      
+    });
     
-      return tournamentsWithStatus;
+    return tournamentsWithStatus;
 }
 
 const getAllTournamentsFilteredService = async (query) => {
