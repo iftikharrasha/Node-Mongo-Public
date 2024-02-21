@@ -1,4 +1,3 @@
-const dotenv = require('dotenv').config();
 const http = require('http');
 const { Server } = require('socket.io');
 const moment = require('moment');
@@ -30,6 +29,7 @@ async function initiateSocket(app, port) {
         const chatNamespace = io.of("/chatRoom");
         const inboxChatNamespace = io.of('/inboxchat');
         const notificationNamespace = io.of("/notifications");
+        const chatTeamNamespace = io.of("/chatRoomTeam");
 
         notificationNamespace.on("connection", (socket) => {
             const { userId, userName } = socket.handshake.query;
@@ -293,6 +293,166 @@ async function initiateSocket(app, port) {
                     socket.to(userRoomId).emit("chatroom_users", updatedUsersByRoom[userRoomId]);
 
                     socket.broadcast.to(userRoomId).emit("receive_message", {
+                        message: `${removedUser?.userName} has left the room.`,
+                        senderName: CHAT_BOT,
+                        senderPhoto: CHAT_BOT_IMAGE,
+                        createdAt: Date.now(),
+                        read: false,
+                        sound: "bot",
+                    });
+                }
+            });
+        });
+
+
+        // Listen for when the client connects via socket.io-client for teams
+        chatTeamNamespace.on('connection', (socket) => {
+            console.log(`User connected to team socketID: ${socket.id}`);
+
+            // Add a user to a room
+            socket.on('join_team_room', async (data) => {
+                // Data sent from client when join_room event emitted
+                console.log(data)
+                const { userId, roomId, senderName, senderPhoto, stats, captainUsername, captainPhoto, country, friends, followers } = data;
+                chatRoomId = roomId;
+
+                socket.join(chatRoomId); // Join the user to a socket room
+
+                const now = Date.now(); // Current createdAt
+                const date = moment(now);
+                const createdAt = date.format('YYYY-MM-DDTHH:mm:ss.SSS');
+                
+                // Send message to all users currently in the room, apart from the user that just joined
+                socket.broadcast.to(chatRoomId).emit('receive_team_message', {
+                    message: `${senderName} has joined the room`,
+                    senderName: captainUsername,
+                    senderPhoto: captainPhoto,
+                    read: false,
+                    createdAt,
+                    sound: "bot"
+                });
+
+                // Send welcome msg to user that just joined chat only
+                socket.emit('receive_team_message', {
+                    message: `Welcome ${senderName}`,
+                    senderName: captainUsername,
+                    senderPhoto: captainPhoto,
+                    read: false,
+                    createdAt,
+                    sound: "bot"
+                });
+
+                //2
+                if (!allUsersByRoom[chatRoomId]) {
+                    allUsersByRoom[chatRoomId] = [];
+                }
+
+                //allusers are users of all rooms
+                allUsersByRoom[chatRoomId].push({ id: userId, socketId: socket.id, roomId: chatRoomId, userName: senderName, photo: senderPhoto, createdAt: createdAt, stats: stats, country: country, friends: friends, followers: followers });
+
+                //only send the users of this room, since a lot of users will be joining to other rooms as well
+                socket.to(chatRoomId).emit("chatroom_team_mates", allUsersByRoom[chatRoomId]);
+                socket.emit("chatroom_team_mates", allUsersByRoom[chatRoomId]);
+
+                //send all messages from DB
+                const last100Messages = await getChatroomMessagesByRoomId(chatRoomId);
+                if (last100Messages) {
+                    socket.emit("last_100_messages", last100Messages);
+                }
+                
+                //count how many unread notifications
+                // const query2 = { roomId: chatRoomId, read: false, senderId: { $ne: userId } };
+                // const count = await chatRoom.countDocuments(query2);
+
+                // if (count) {
+                //     socket.emit("get_unread_counts", count);
+                // }
+            });
+
+            socket.on("send_team_message", async (data) => {
+                const { message, senderName, roomId, createdAt, senderPhoto, read, senderId } = data;
+
+                // Send to all users in room, including sender
+                chatTeamNamespace.in(roomId).emit("receive_team_message", { message, senderName, senderPhoto, roomId, createdAt, read, sound: "msg" }); 
+
+                // Save message to databases
+                const result = await createChatRoomMessageService(data);
+            });
+
+            socket.on('ping', () => {
+                const createdAt = new Date().getTime();
+                const formattedDate = moment(createdAt).format('HH:mm:ss');
+                console.log(`Received ping from socket ${socket.id} at ${formattedDate}`);
+                socket.emit('pong', createdAt, formattedDate, socket.id);
+
+                // Reset the server timeout to 120000ms (2 minutes)
+                server.setTimeout(timeout);
+            });
+            
+            socket.on("typing", ({ roomId, userName }) => {
+                // socket.to(roomId).emit("typing", { user: socket.id, roomId: roomId })
+                console.log(`${userName} is typing...`);
+                socket.to(roomId).emit("userTyping", userName);
+            });
+
+            socket.on("leave_team_room", (data) => {
+                const { createdAt } = data;
+                let removedUser;
+                const updatedUsersByRoom = Object.fromEntries(
+                    Object.entries(allUsersByRoom).map(([room, users]) => [
+                      room,
+                      users.filter(user => {
+                        if(user.socketId === socket.id){
+                            removedUser = user;
+                            return false;
+                        }else{
+                            return true;
+                        }
+                      })
+                    ])
+                );
+
+                // If the user is found
+                if(removedUser?.userName) {
+                    const userRoomId = removedUser.roomId;
+                    allUsersByRoom = updatedUsersByRoom;  // array updated of list of remaining users
+                    socket.to(userRoomId).emit("chatroom_team_mates", updatedUsersByRoom[userRoomId]);
+
+                    socket.broadcast.to(userRoomId).emit("receive_team_message", {
+                        message: `${removedUser?.userName} has left the room.`,
+                        senderName: CHAT_BOT,
+                        senderPhoto: CHAT_BOT_IMAGE,
+                        createdAt: createdAt,
+                        read: false,
+                        sound: "bot",
+                    });
+                }
+                
+                socket.leave(chatRoomId);
+            });
+
+            socket.on("disconnect", () => {
+                let removedUser;
+                const updatedUsersByRoom = Object.fromEntries(
+                    Object.entries(allUsersByRoom).map(([room, users]) => [
+                      room,
+                      users.filter(user => {
+                        if(user.socketId === socket.id){
+                            removedUser = user;
+                            return false;
+                        }else{
+                            return true;
+                        }
+                      })
+                    ])
+                  );
+
+                if(removedUser?.userName) {
+                    const userRoomId = removedUser.roomId;
+                    allUsersByRoom = updatedUsersByRoom;  // array updated of list of remaining users
+                    socket.to(userRoomId).emit("chatroom_team_mates", updatedUsersByRoom[userRoomId]);
+
+                    socket.broadcast.to(userRoomId).emit("receive_team_message", {
                         message: `${removedUser?.userName} has left the room.`,
                         senderName: CHAT_BOT,
                         senderPhoto: CHAT_BOT_IMAGE,

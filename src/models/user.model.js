@@ -255,7 +255,7 @@ const userSchema = new mongoose.Schema({
         },
         levelTitle: {
             type: String,
-            default: "underdog"
+            default: "Iron Shakled"
         },
         currentLevel: {
             type: Number,

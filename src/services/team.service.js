@@ -1,11 +1,12 @@
 const { getDb } = require("../utils/dbConnect")
 const Team = require('../models/team.model');
 const User = require('../models/user.model');
-const excludedUserFieldsForTeamList = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -socials -updatedAt -__v -balance -emailAddress -gameAccounts -mobileNumber -permissions -purchasedItems -status -parties -badgeRef';
+const excludedUserFieldsForTeamList = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -socials -updatedAt -__v -balance -emailAddress -mobileNumber -permissions -purchasedItems -status -parties -badgeRef';
 
 const getAllTeamsService = async () => {
-    const db = getDb();
-    const teams = await db.collection("teams").find({}).toArray();
+    const teams = await Team.find({ status: 'active' })
+                            .populate('members.invited members.mates', `${excludedUserFieldsForTeamList} -gameAccounts`)
+                            .populate('captainId', `${excludedUserFieldsForTeamList} -gameAccounts`);
     return teams;
 }
 
@@ -16,25 +17,102 @@ const getMyTeamsByIdService = async (id) => {
                                     { 'members.mates': id }  // Check if the provided id exists in members.mates array
                                 ]
                             })
-                            .populate('members.invited members.mates', excludedUserFieldsForTeamList)
-                            .populate('captainId', excludedUserFieldsForTeamList);
+                            .populate('members.invited members.mates', `${excludedUserFieldsForTeamList} -gameAccounts`)
+                            .populate('captainId', `${excludedUserFieldsForTeamList} -gameAccounts`);
     return team;
 }
 
 const getTeamDetailsService = async (id) => {
-    const team = await Team.findOne({ _id: id })
-                                       .populate('members.invited members.mates', excludedUserFieldsForTeamList)
-                                       .populate('captainId', excludedUserFieldsForTeamList)
-                                       .lean();
+    // const accountTag = 'activision';
+    // const category = 'warzone';
+    // const platform = 'pc''; //optional? need to make sure 1 person 1 gameaccount for 1 game
+
+    // Define the populate options for captainId
+    const captainPopulateOptions = {
+        path: 'captainId',
+        select: excludedUserFieldsForTeamList,
+        populate: {
+            path: 'gameAccounts',
+            // match: { tag: accountTag, category: category, platform: platform },
+            // select: 'tag' // Select only the tag field from the gameAccounts collection
+        }
+    };
+
+    // Define populate options for members.mates
+    const matesPopulateOptions = {
+        path: 'members.mates',
+        select: excludedUserFieldsForTeamList,
+        populate: {
+            path: 'gameAccounts',
+            // match: { tag: accountTag, category: category, platform: platform },
+        }
+    };
+
+    // Define populate options for members.invited
+    const invitedPopulateOptions = {
+       path: 'members.invited',
+       select: `${excludedUserFieldsForTeamList} -gameAccounts`,
+    };
+
+     // Find the team and populate the captainId field with the specified options
+     const team = await Team.findOne({ _id: id })
+                            .populate(invitedPopulateOptions)
+                            .populate(matesPopulateOptions)
+                            .populate(captainPopulateOptions)
+                            .lean();
+
+    ////normal way
+    // const team = await Team.findOne({ _id: id })
+    //                                    .populate('members.invited members.mates', excludedUserFieldsForTeamList)
+    //                                    .populate('captainId', excludedUserFieldsForTeamList)
+    //                                    .lean();
     
 
     // Manually add the team total xp points to tournament object
     const teamMatesTotalXp = team?.members?.mates?.reduce((acc, member) => acc + member.stats.totalXp, 0);
     const teamTotalXpPoints = teamMatesTotalXp + team.captainId.stats.totalXp;
     team.teamTotalXp = teamTotalXpPoints;
+
+     // Count total gameAccounts from team members and captain
+    const totalGameAccounts = team.members.mates.reduce((acc, member) => acc + (member.gameAccounts || []).length, 0) +
+    (team.captainId.gameAccounts || []).length;
+    team.totalGameAccounts = totalGameAccounts;
                   
     return team;
 }
+
+const updateTeamByIdService = async (id) => {
+    try {
+        const updatedTeam = await Team.findByIdAndUpdate(id, { status: 'active' }, { new: true });
+            console.log(updatedTeam);
+        return updatedTeam;
+    } catch (error) {
+        console.error('Error activating team:', error);
+        throw error; // Forward the error to the caller
+    }
+};
+
+
+// const updateTeamByIdService = async (id, data) => {
+//     const currentTeam = await Team.findById(id);
+
+//     const updatedProfile = {
+//         ...currentTeam.toObject(),
+//         status: 'active',
+//         version: currentTeam.version + 1 // increment the version field
+//     };
+
+//     const result = await Team.findByIdAndUpdate(
+//         mongoose.Types.ObjectId(id), // Convert id to ObjectId
+//         updatedProfile,
+//         {
+//             new: true,
+//             runValidators: true
+//         }
+//     );
+//     console.log(result);
+//     return result;
+// };
 
 const createTeamService = async (data) => {
     const team = await Team.create(data);
@@ -64,12 +142,50 @@ const addTeamToUserService = async (uId, teamId) => {
 };
 
 const getTeamPeoplelistService = async (id) => {
+    const accountTag = 'activision';
+    const category = 'warzone';
+    const platform = 'pc'; //optional? need to make sure 1 person 1 gameaccount for 1 game
+
+    // Define the populate options for captainId
+    const captainPopulateOptions = {
+        path: 'captainId',
+        select: excludedUserFieldsForTeamList,
+        populate: {
+            path: 'gameAccounts',
+            match: { tag: accountTag, category: category, platform: platform },
+            // select: 'tag' // Select only the tag field from the gameAccounts collection
+        }
+    };
+
+    // Define populate options for members.mates
+    const matesPopulateOptions = {
+        path: 'members.mates',
+        select: `${excludedUserFieldsForTeamList}`,
+        populate: {
+            path: 'gameAccounts',
+            match: { tag: accountTag, category: category, platform: platform },
+        }
+    };
+
+    // Define populate options for members.invited
+    const invitedPopulateOptions = {
+       path: 'members.invited',
+       select: `${excludedUserFieldsForTeamList} -gameAccounts`,
+    };
+
+    // Find the team and populate the captainId field with the specified options
     const currentTeam = await Team.findOne({ _id: id })
-                                .select('members.invited members.mates')
-                                .populate({
-                                    path: 'members.invited members.mates',
-                                    select: excludedUserFieldsForTeamList,
-                                });
+                        .populate(invitedPopulateOptions)
+                        .populate(matesPopulateOptions)
+                        .populate(captainPopulateOptions)
+                        .lean();
+
+    // const currentTeam = await Team.findOne({ _id: id })
+    //                             .select('members.invited members.mates')
+    //                             .populate({
+    //                                 path: 'members.invited members.mates',
+    //                                 select: excludedUserFieldsForTeamList,
+    //                             });
     
     return currentTeam
 };
@@ -143,6 +259,7 @@ const teamJoinRequestService = async (data) => {
 module.exports = {
     getAllTeamsService,
     getTeamDetailsService,
+    updateTeamByIdService,
     getMyTeamsByIdService,
     createTeamService,
     addTeamToUserService,

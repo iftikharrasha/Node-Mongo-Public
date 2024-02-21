@@ -11,6 +11,8 @@ const csgoMaps = ["dust II", "mirage", "overpass", "vertigo", "train", "inferno"
 const warzoneMaps = ["vondel", "al mazrah", "ashika island", "NA"];
 const fifaMaps = ["old trafford", "santiago barnabue", "NA"];
 const rocketLeagueMaps = ["aquadome", "beckwith park", "champions field", "arctagon", "badlands", "basin", "barricade", "calavera", "carbon", "NA"];
+const clashClanMaps = ["town hall 7","town hall 8","town hall 9","town hall 10","town hall 11","town hall 12","town hall 13","town hall 14","town hall 15","town hall 16", "NA"];
+const clashRoyalMaps = ["goblin stadium","bone pit", "berbarian bowl", "pekkas playhouse", "royal arena", "frozen peak", "jungle arena", "hog mountain", "electro valley", "rascals hideout", "serenity peak", "executioners kitchen", "executioners kitchen", "royal crypt", "silent sanctuary", "dragon spa", "boot camp", "clash fest", "pancakes", "legendary arena", "NA"];
 
 const settingsSchema = new mongoose.Schema({
     joiningFee: {
@@ -297,6 +299,10 @@ const tournamentSchema = new mongoose.Schema({
                     return fifaMaps.includes(map);
                 }else if (category === 'rocket league') {
                     return rocketLeagueMaps.includes(map);
+                }else if (category === 'clash of clans') {
+                    return clashClanMaps.includes(map);
+                }else if (category === 'clash royale') {
+                    return clashRoyalMaps.includes(map);
                 }else {
                     return false;
                 }

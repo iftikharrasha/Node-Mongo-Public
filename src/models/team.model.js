@@ -54,6 +54,24 @@ const statsSchema = new mongoose.Schema({
     }
 },{ _id: false });
 
+const actionsSchema = new mongoose.Schema({
+    invite: {
+        type: Boolean
+    },
+    kick: {
+        type: Boolean
+    },
+    transfer: {
+        type: Boolean
+    },
+    leave: {
+        type: Boolean
+    },
+    delete: {
+        type: Boolean
+    },
+},{ _id: false });
+
 const teamSchema = new mongoose.Schema({
     captainId: {
         type: ObjectId,
@@ -68,7 +86,7 @@ const teamSchema = new mongoose.Schema({
     category: {
         type: String,
         enum: {
-            values: ["pubg", "warzone", "freefire", "csgo"],
+            values: ["pubg", "warzone", "freefire", "csgo", "rocket league", "clash of clans", "clash royale"],
             message: "{VALUE} is not a valid category!",
         },
         required: true
@@ -80,12 +98,10 @@ const teamSchema = new mongoose.Schema({
     photo: {
         type: String,
         validate: [validator.isURL, "Please provide a valid image url"],
-        default: 'https://pbs.twimg.com/profile_images/1648571357171679233/kVd8vhxW_400x400.jpg'
     },
     coverPhoto: {
         type: String,
         validate: [validator.isURL, "Please provide a valid image url"],
-        default: 'https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/393380/8c58d098e9d2238ccea5d241d4fecde88b5e3481.jpg'
     },
     status: {
         type: String,
@@ -99,13 +115,35 @@ const teamSchema = new mongoose.Schema({
         type: Number, 
         default: 1 
     },
-    // members: [{
-    //     type: ObjectId,
-    //     ref: "User"
-    // }],
+    size: {
+        type: Number,
+        default: 3,
+    },
+    actions: {
+        type: actionsSchema,
+        default: {
+            invite: false,
+            kick: false,
+            transfer: false,
+            leave: false,
+            delete: false,
+        },
+    },
     members: {
         invited: [{ type: ObjectId, ref: 'User'}],
         mates: [{ type: ObjectId, ref: 'User'}],
+    },
+    notifications: {
+        type: ObjectId,
+        ref: 'Notification',
+    },
+    accountTag: {
+        type: String,
+        default: 'player',
+        enum: {
+            values: ['epic', 'activision', 'ea', 'steam', 'battelnet', 'supercell', 'faceit', 'player'],
+            message: "{VALUE} is not a valid accountTag!",
+        },
     },
     stats: {
         type: statsSchema,
@@ -138,6 +176,12 @@ const teamSchema = new mongoose.Schema({
                     return true
                 }else if (category === 'warzone') {
                     return true
+                }else if (category === 'rocket league') {
+                    return true
+                }else if (category === 'clash of clans') {
+                    return true
+                }else if (category === 'clash royale') {
+                    return true
                 }else {
                     return false;
                 }
@@ -156,6 +200,12 @@ teamSchema.pre("save", async function (next) {
     } else {
         await Version.create({ table: 'teams', version: 1 });
     }
+
+    // Calculate percentage
+    // this.calculateCompletionPercentage();
+
+    // Add coverImage
+    this.addTeamImagesTags();
 
     next();
 });
@@ -184,6 +234,70 @@ teamSchema.pre('findOneAndUpdate', async function (next) {
 
     next();
 });
+
+teamSchema.pre('findOneAndDelete', async function (next) {
+    const versionTable = await Version.findOne({ table: 'teams' });
+    if (versionTable) {
+        versionTable.version = versionTable.version + 1;
+        await versionTable.save();
+    }
+    next();
+});
+
+teamSchema.methods.addTeamImagesTags = function() {
+    const category = this.category;
+    let coverPhoto;
+    let photo;
+    let size;
+    let tag;
+
+    if (category === 'pubg') {
+        photo = 'https://cdn.exputer.com/wp-content/uploads/2022/07/PUBG-Patch-18.2-Adds-More-Graphical-Options-For-Next-Gen-Consoles.jpg.webp';
+        coverPhoto = 'https://cdn.exputer.com/wp-content/uploads/2022/07/PUBG-Patch-18.2-Adds-More-Graphical-Options-For-Next-Gen-Consoles.jpg.webp';
+        size = 4;
+        tag = 'player';
+    } else if (category === 'freefire') {
+        photo = 'https://d.newsweek.com/en/full/1987539/garena-free-fire-keyart.webp?w=1600&h=900&q=88&f=e35a53dbb53ee0455d23e0afef5da942';
+        coverPhoto = 'https://d.newsweek.com/en/full/1987539/garena-free-fire-keyart.webp?w=1600&h=900&q=88&f=e35a53dbb53ee0455d23e0afef5da942';
+        size = 4;
+        tag = 'player';
+    } else if (category === 'csgo') {
+        photo = 'https://i.pinimg.com/originals/7b/23/2c/7b232ccb015d9c21143b6ccd67038e63.jpg';
+        coverPhoto = 'https://i.pinimg.com/originals/7b/23/2c/7b232ccb015d9c21143b6ccd67038e63.jpg';
+        size = 5;
+        tag = 'faceit';
+    } else if (category === 'warzone') {
+        photo = 'https://e24reactor-s3-bucket.s3.amazonaws.com/images/tournaments/5442ff27-ed75-49c8-a2c9-6631f34264e2-download.jpg';
+        coverPhoto = 'https://static1.thegamerimages.com/wordpress/wp-content/uploads/2020/03/warzone-dropping-in-to-the-map-modern-warfare.jpg';
+        size = 4;
+        tag = 'activision';
+    } else if (category === 'rocket league') {
+        photo = 'https://variety.com/wp-content/uploads/2020/07/rocket-league.jpg?w=1000&h=563&crop=1&resize=1000%2C563';
+        coverPhoto = 'https://variety.com/wp-content/uploads/2020/07/rocket-league.jpg?w=1000&h=563&crop=1&resize=1000%2C563';
+        size = 6;
+        tag = 'epic';
+    } else if (category === 'clash of clans') {
+        photo = 'https://media.newyorker.com/photos/590977c9019dfc3494ea2f7f/master/w_2560%2Cc_limit/Johnston-Clash-Clans.jpg';
+        coverPhoto = 'https://media.newyorker.com/photos/590977c9019dfc3494ea2f7f/master/w_2560%2Cc_limit/Johnston-Clash-Clans.jpg';
+        size = 6;
+        tag = 'supercell';
+    } else if (category === 'clash royale') {
+        photo = 'https://www.touchtapplay.com/wp-content/uploads/2016/03/how-to-fix-clash-royale-connection-problems.jpg?fit=1000%2C592';
+        coverPhoto = 'https://www.touchtapplay.com/wp-content/uploads/2016/03/how-to-fix-clash-royale-connection-problems.jpg?fit=1000%2C592';
+        size = 50;
+        tag = 'supercell';
+    } else {
+        photo = 'https://pbs.twimg.com/profile_images/1648571357171679233/kVd8vhxW_400x400.jpg';
+        coverPhoto = 'https://cdn.akamai.steamstatic.com/steamcommunity/public/images/apps/393380/8c58d098e9d2238ccea5d241d4fecde88b5e3481.jpg';
+        size = 3;
+        tag = 'player';
+    }
+  
+    this.photo = photo;
+    this.coverPhoto = coverPhoto;
+    this.size = size;
+    this.accountTag = tag;
+};
 
 const Team = mongoose.model('Team', teamSchema);
 module.exports = Team;

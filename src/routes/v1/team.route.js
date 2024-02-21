@@ -17,6 +17,7 @@ router
 router
 .route('/:id')
 .get(validateVersion, validateParams, teamControllers.getTeamDetails)
+.patch(authentication, authorization("user", "admin"), validateParams, teamControllers.updateTeamById)
 
 router
 .route("/my/:id")

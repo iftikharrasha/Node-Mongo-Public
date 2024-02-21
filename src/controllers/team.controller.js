@@ -1,6 +1,6 @@
 
 const { updateXp } = require("../services/account.service");
-const { getAllTeamsService, getMyTeamsByIdService, createTeamService, addTeamToUserService, getTeamPeoplelistService, getTeamDetailsService, teamJoinRequestService } = require("../services/team.service");
+const { getAllTeamsService, getMyTeamsByIdService, createTeamService, addTeamToUserService, getTeamPeoplelistService, getTeamDetailsService, teamJoinRequestService, updateTeamByIdService } = require("../services/team.service");
 const { getVersionTableService } = require("../services/versionTable.service");
 
 const getAllTeams = async (req, res, next) => {
@@ -130,6 +130,47 @@ const getTeamDetails = async (req, res, next) => {
         }
     }
     res.send(response);
+};
+
+const updateTeamById = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null
+    }
+
+    try {
+        const result = await updateTeamByIdService(req.params.id, req.body);
+
+        if (!result) {
+            response.success = false;
+            response.status = 400;
+            response.message = "Data is not updated";
+            response.error = {
+                code: 400,
+                message: "Team Details Not found",
+                target: "database"
+            }
+
+            return res.send(response);
+        }
+
+        response.data = result;
+        response.version = result.version;
+        res.send(response);
+    } catch (error) {
+        response.success = false;
+        response.status = 500;
+        response.error = { 
+            code: 500, 
+            message: "An Internal Error Has Occurred!",
+            target: "approx what the error came from", 
+        }
+        res.send(response);
+    }
 };
 
 const getMyTeamsById = async (req, res, next) => {
@@ -361,6 +402,7 @@ const teamJoinRequest = async (req, res, next) => {
 module.exports = {
     getAllTeams,
     getTeamDetails,
+    updateTeamById,
     getMyTeamsById,
     addANewTeam,
     getTeamPeoplelist,
