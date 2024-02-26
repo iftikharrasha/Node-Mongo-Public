@@ -312,7 +312,6 @@ async function initiateSocket(app, port) {
             // Add a user to a room
             socket.on('join_team_room', async (data) => {
                 // Data sent from client when join_room event emitted
-                console.log(data)
                 const { userId, roomId, senderName, senderPhoto, stats, captainUsername, captainPhoto, country, friends, followers } = data;
                 chatRoomId = roomId;
 

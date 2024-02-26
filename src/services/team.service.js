@@ -10,6 +10,11 @@ const getAllTeamsService = async () => {
     return teams;
 }
 
+const getTeamByIdService = async (id) => {
+    const team = await Team.findOne({ _id: id })
+    return team;
+}
+
 const getMyTeamsByIdService = async (id) => {
     const team = await Team.find({
                                 $or: [
@@ -23,9 +28,16 @@ const getMyTeamsByIdService = async (id) => {
 }
 
 const getTeamDetailsService = async (id) => {
-    // const accountTag = 'activision';
-    // const category = 'warzone';
-    // const platform = 'pc''; //optional? need to make sure 1 person 1 gameaccount for 1 game
+    const teamFound = await getTeamByIdService(id);
+    const { accountTag, category, platforms, crossPlatforms } = teamFound;
+    const crossPlayBoolean = platforms.includes('cross');
+
+    let platformCriteria = {};
+    if (crossPlayBoolean) {
+        platformCriteria = { platform: { $in: crossPlatforms } };
+    } else {
+        platformCriteria = { platform: { $in: platforms } };
+    }
 
     // Define the populate options for captainId
     const captainPopulateOptions = {
@@ -33,8 +45,7 @@ const getTeamDetailsService = async (id) => {
         select: excludedUserFieldsForTeamList,
         populate: {
             path: 'gameAccounts',
-            // match: { tag: accountTag, category: category, platform: platform },
-            // select: 'tag' // Select only the tag field from the gameAccounts collection
+            match: { tag: accountTag, category: category, crossPlay: crossPlayBoolean, ...platformCriteria },
         }
     };
 
@@ -44,7 +55,7 @@ const getTeamDetailsService = async (id) => {
         select: excludedUserFieldsForTeamList,
         populate: {
             path: 'gameAccounts',
-            // match: { tag: accountTag, category: category, platform: platform },
+            match: { tag: accountTag, category: category, crossPlay: crossPlayBoolean, ...platformCriteria },
         }
     };
 
@@ -60,12 +71,6 @@ const getTeamDetailsService = async (id) => {
                             .populate(matesPopulateOptions)
                             .populate(captainPopulateOptions)
                             .lean();
-
-    ////normal way
-    // const team = await Team.findOne({ _id: id })
-    //                                    .populate('members.invited members.mates', excludedUserFieldsForTeamList)
-    //                                    .populate('captainId', excludedUserFieldsForTeamList)
-    //                                    .lean();
     
 
     // Manually add the team total xp points to tournament object
@@ -91,6 +96,94 @@ const updateTeamByIdService = async (id) => {
         throw error; // Forward the error to the caller
     }
 };
+
+// const getTeamDetailsService = async (id) => {
+//     // Define the pipeline to aggregate the team
+//     const pipeline = [
+//         { $match: { _id: id } }, // Match the team by id
+//         {
+//             $lookup: {
+//                 from: 'users', // Assuming the collection name is 'users'
+//                 let: { accountTag: '$accountTag', category: '$category' },
+//                 pipeline: [
+//                     {
+//                         $match: {
+//                             $expr: {
+//                                 $and: [
+//                                     { 
+//                                         $gt: [
+//                                             { 
+//                                                 $size: { 
+//                                                     $filter: { 
+//                                                         input: '$gameAccounts', 
+//                                                         as: 'gameAccount', 
+//                                                         cond: { 
+//                                                             $and: [
+//                                                                 { $eq: ['$$gameAccount.tag', '$$accountTag'] }, 
+//                                                                 { $eq: ['$$gameAccount.category', '$$category'] }
+//                                                             ] 
+//                                                         } 
+//                                                     } 
+//                                                 } 
+//                                             },
+//                                             0
+//                                         ]
+//                                     }
+//                                 ]
+//                             }
+//                         }
+//                     },
+//                     { $project: excludedUserFieldsForTeamList }
+//                 ],
+//                 as: 'membersData'
+//             }
+//         }
+//     ];
+//     console.log(pipeline);
+
+//     // Execute the aggregation pipeline
+//     const team = await Team.aggregate(pipeline);
+//     console.log(team);
+
+//     // Extract the team data from the result
+//     const [teamData] = team;
+//     console.log(teamData);
+
+//     // // Populate mates and invited using the extracted membersData
+//     // const matesPopulated = teamData.members.mates.map(member => {
+//     //     const mateData = teamData.membersData.find(data => data._id.equals(member._id));
+//     //     return { ...member, gameAccounts: mateData ? mateData.gameAccounts : [] };
+//     // });
+
+//     // const invitedPopulated = teamData.members.invited.map(invited => {
+//     //     const invitedData = teamData.membersData.find(data => data._id.equals(invited._id));
+//     //     return { ...invited, gameAccounts: invitedData ? invitedData.gameAccounts : [] };
+//     // });
+
+//     // // Populate captain
+//     // const captainData = teamData.membersData.find(data => data._id.equals(teamData.captainId));
+
+//     // // Calculate team total xp points
+//     // const teamMatesTotalXp = matesPopulated.reduce((acc, member) => acc + member.stats.totalXp, 0);
+//     // const teamTotalXpPoints = teamMatesTotalXp + (captainData ? captainData.stats.totalXp : 0);
+
+//     // // Count total gameAccounts from team members and captain
+//     // const totalGameAccounts = matesPopulated.reduce((acc, member) => acc + (member.gameAccounts || []).length, 0) +
+//     //     (captainData ? (captainData.gameAccounts || []).length : 0);
+
+//     // // Create the team object with populated data
+//     // const populatedTeam = {
+//     //     ...teamData,
+//     //     members: { mates: matesPopulated, invited: invitedPopulated },
+//     //     captainId: captainData,
+//     //     teamTotalXp: teamTotalXpPoints,
+//     //     totalGameAccounts: totalGameAccounts
+//     // };
+
+//     return populatedTeam;
+// };
+
+
 
 
 // const updateTeamByIdService = async (id, data) => {
@@ -142,9 +235,16 @@ const addTeamToUserService = async (uId, teamId) => {
 };
 
 const getTeamPeoplelistService = async (id) => {
-    const accountTag = 'activision';
-    const category = 'warzone';
-    const platform = 'pc'; //optional? need to make sure 1 person 1 gameaccount for 1 game
+    const teamFound = await getTeamByIdService(id);
+    const { accountTag, category, platforms, crossPlatforms } = teamFound;
+    const crossPlayBoolean = platforms.includes('cross');
+
+    let platformCriteria = {};
+    if (crossPlayBoolean) {
+        platformCriteria = { platform: { $in: crossPlatforms } };
+    } else {
+        platformCriteria = { platform: { $in: platforms } };
+    }
 
     // Define the populate options for captainId
     const captainPopulateOptions = {
@@ -152,8 +252,7 @@ const getTeamPeoplelistService = async (id) => {
         select: excludedUserFieldsForTeamList,
         populate: {
             path: 'gameAccounts',
-            match: { tag: accountTag, category: category, platform: platform },
-            // select: 'tag' // Select only the tag field from the gameAccounts collection
+            match: { tag: accountTag, category: category, crossPlay: crossPlayBoolean, ...platformCriteria },
         }
     };
 
@@ -163,7 +262,7 @@ const getTeamPeoplelistService = async (id) => {
         select: `${excludedUserFieldsForTeamList}`,
         populate: {
             path: 'gameAccounts',
-            match: { tag: accountTag, category: category, platform: platform },
+            match: { tag: accountTag, category: category, crossPlay: crossPlayBoolean, ...platformCriteria },
         }
     };
 
@@ -179,13 +278,6 @@ const getTeamPeoplelistService = async (id) => {
                         .populate(matesPopulateOptions)
                         .populate(captainPopulateOptions)
                         .lean();
-
-    // const currentTeam = await Team.findOne({ _id: id })
-    //                             .select('members.invited members.mates')
-    //                             .populate({
-    //                                 path: 'members.invited members.mates',
-    //                                 select: excludedUserFieldsForTeamList,
-    //                             });
     
     return currentTeam
 };

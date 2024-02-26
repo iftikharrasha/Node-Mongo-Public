@@ -47,26 +47,47 @@ const checkIfUserIsMutual = async (uid, userId) => {
     return user;
 };
 
-const checkIfUserAlreadyBelongsToSimilarTeam = async (cat, userId) => {
-    const user = await User.findById(userId).populate('teams');;
+const arraysHaveSameElements = (array1, array2) => {
+    // Sort the arrays
+    const sortedArray1 = array1.slice().sort();
+    const sortedArray2 = array2.slice().sort();
+    console.log(sortedArray1, sortedArray2)
+
+    // Check if the sorted arrays have the same elements
+    return JSON.stringify(sortedArray1) === JSON.stringify(sortedArray2);
+}
+
+const checkIfUserAlreadyBelongsToSimilarTeam = async (category, userId, platforms, crossPlatforms) => {
+    const user = await User.findById(userId).populate('teams');
     const teams = user.teams || [];
 
-    const alreadyInATeam = teams.some(team => team.category === cat);
+    let teamExists = null;
+    if(platforms.includes('cross')){
+        teamExists = teams.find(t => t.category === category && arraysHaveSameElements(t.crossPlatforms, crossPlatforms));
+        console.log('1', teamExists)
+    }else{
+        teamExists = teams.find(t => t.category === category && arraysHaveSameElements(t.platforms, platforms));
+        console.log("2", teamExists)
+    }
 
-    return alreadyInATeam;
+    // const teamExists = teams.some(team => team.category === cat );
+
+    return teamExists;
 };
 
 const verifyTeamMemberAddService = async (uid, data) => {
     const verifiedMembers = [];
     const members = data.members;
     const category = data.category;
+    const platforms = data.platforms;
+    const crossPlatforms = data.crossPlatforms;
 
     for (const member of members) {
         const user = await findUserByUsername(member);
         if (user) {
             const friend = await checkIfUserIsMutual(uid, user._id);
             if (friend) {
-                const alreadyInATeam = await checkIfUserAlreadyBelongsToSimilarTeam(category, user._id);
+                const alreadyInATeam = await checkIfUserAlreadyBelongsToSimilarTeam(category, user._id, platforms, crossPlatforms);
                 if(alreadyInATeam){
                     return { success: false, message: `Player ${member} already belongs to a ${category} team`, members: verifiedMembers};
                 }else{
@@ -103,6 +124,11 @@ const updateProfileByIdService = async (id, data) => {
 const addGameAccountService = async (id, data) => {
     const gameaccount = await GameAccount.create(data);
     return gameaccount;
+};
+
+const deleteGameAccountsService = async () => {
+    const result = await GameAccount.deleteMany({});
+    return result;
 };
 
 const gameAccountConnectToUser = async (uId, gameId) => {
@@ -466,6 +492,7 @@ module.exports = {
     getUsersListService,
     updateXp,
     addGameAccountService,
+    deleteGameAccountsService,
     gameAccountConnectToUser,
     friendRequestService,
     getfriendlistService,

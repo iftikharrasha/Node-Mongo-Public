@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const { generateToken, generateRefreshToken } = require("../utils/token");
-const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService, addGameAccountService, friendRequestService, getfriendlistService, gameAccountConnectToUser, updateXp, addNewBadgeService, getBadgeListService, updateSiteBadgeService, addUsersBadgeService, verifyTeamMemberAddService } = require("../services/account.service");
+const { userSignupService, findUserByEmail, findUserById, updateProfileByIdService, deleteProfileByIdService, userLoginService, getUserProfileService, getUsersListService, addGameAccountService, friendRequestService, getfriendlistService, gameAccountConnectToUser, updateXp, addNewBadgeService, getBadgeListService, updateSiteBadgeService, addUsersBadgeService, verifyTeamMemberAddService, deleteGameAccountsService } = require("../services/account.service");
 const { deleteTransactionByIdService } = require('../services/wallet.service');
 const { getVersionTableService } = require('../services/versionTable.service');
 
@@ -551,6 +551,48 @@ const addGameAccount = async (req, res, next) => {
     }
 };
 
+const deleteGameAccounts = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null
+    }
+    try {
+        const result = await deleteGameAccountsService();
+    
+        if (!result) {
+            response.success = false;
+            response.status = 400;
+            response.message = "Data is not deleted";
+            response.error = {
+                code: 400,
+                message: error.message,
+                target: "client side api calling issue"
+            }
+
+            return res.send(response);
+        }
+
+        response.version = result.version;
+        response.message = "All game accounts deleted successfully";
+        res.send(response);
+    } catch (error) {
+        response.success = false;
+        response.status = 500;
+        response.message = "Data is not deleted";
+        response.error = {
+            code: 500,
+            message: error.message,
+            target: "client side api calling issue"
+        }
+
+        res.status(500).send(response);
+    }
+};
+
 const friendRequest = async (req, res, next) => {
     let response = {
         success: true,
@@ -854,6 +896,7 @@ module.exports = {
     deleteProfileById,
     getUsersList,
     addGameAccount,
+    deleteGameAccounts,
     friendRequest,
     getfriendlist,
     addNewBadge,

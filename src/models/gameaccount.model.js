@@ -49,6 +49,10 @@ const gameaccountSchema = new mongoose.Schema({
       type: String,
       validate: [validator.isURL, "Please provide a valid image url"],
   },
+  crossPlay: { 
+    type: Boolean, 
+    default: true 
+  },
   version: { 
     type: Number, 
     default: 1 

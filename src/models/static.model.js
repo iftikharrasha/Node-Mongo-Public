@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Version = require('./version.model');
+const { ObjectId } = mongoose.Schema.Types;
 
 const sliderSchema = new mongoose.Schema({
   h2: { type: String, required: true },
@@ -52,15 +53,75 @@ const langSchema = new mongoose.Schema({
   featured: {
     h2: { type: String, required: true }
   },
-  footer: { type: footerSchema, required: true }
+  footer: { type: footerSchema, required: true },
 },{ _id: false });
 
 
 const staticSchema = new mongoose.Schema({
-  version: { type: Number, default: 1 },
-  uk: { type: langSchema, required: true },
-  bd: { type: langSchema, required: true },
-  ksa: { type: langSchema, required: true }
+  uk: { 
+    type: langSchema, 
+    required: true 
+  },
+  bd: { 
+    type: langSchema, 
+    required: true 
+  },
+  ksa: { 
+    type: langSchema, 
+    required: true 
+  },
+  platforms: {
+      type: [String],
+      enum: {
+          values: ['psn', 'xbox', 'pc', 'mobile', 'nintendo'],
+          message: "{VALUE} is not a valid platform!",
+      },
+      default: []
+  },
+  games: [{ 
+    gameTitle: {
+      type: String,
+      enum: {
+          values: ["pubg", "warzone", "freefire", "fifa", "rocket league", "clash of clans", "clash royale"],
+          message: "{VALUE} is not a valid gameTitle!",
+      },
+      required: true 
+    },
+    eligiblePlatforms: [ 
+      { 
+        type: String, 
+        enum: {
+            values: ['psn', 'xbox', 'pc', 'mobile', 'nintendo', 'cross'],
+            message: "{VALUE} is not a valid platform!",
+        },
+        required: true 
+      }
+    ],
+    crossPlatforms: [ 
+      { 
+        type: String, 
+        enum: {
+            values: ['psn', 'xbox', 'pc', 'mobile', 'nintendo'],
+            message: "{VALUE} is not a valid platform!",
+        },
+        required: true 
+      }
+    ],
+    refs: {
+      bot: { 
+        type: ObjectId, 
+        ref: "User" 
+      },
+      party: { 
+        type: ObjectId, 
+        ref: "Party" 
+      }
+    },
+  }],
+  version: { 
+    type: Number, 
+    default: 1 
+  },
 }, { timestamps: true });
 
 staticSchema.pre('save', async function() {

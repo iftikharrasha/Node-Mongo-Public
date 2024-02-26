@@ -145,6 +145,22 @@ const teamSchema = new mongoose.Schema({
             message: "{VALUE} is not a valid accountTag!",
         },
     },
+    platforms: {
+        type: [String],
+        enum: {
+            values: ['cross', 'psn', 'xbox', 'pc', 'mobile', 'nintendo'],
+            message: "{VALUE} is not a valid platform!",
+        },
+        default: []
+    },
+    crossPlatforms: {
+        type: [String],
+        enum: {
+            values: ['psn', 'xbox', 'pc', 'mobile', 'nintendo'],
+            message: "{VALUE} is not a valid crossPlay!",
+        },
+        default: []
+    },
     stats: {
         type: statsSchema,
         default: {

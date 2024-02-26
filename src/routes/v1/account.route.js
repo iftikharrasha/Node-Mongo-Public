@@ -28,8 +28,12 @@ router
 .get(authentication, authorization("admin"), validateVersion, validateParams, accountControllers.getUsersList)
 
 router
+.route('/gameaccount')
+.delete(authentication, authorization("admin"), accountControllers.deleteGameAccounts)
+
+router
 .route('/gameaccount/:id')
-.post(authentication, validateParams, accountControllers.addGameAccount);
+.post(authentication, validateParams, accountControllers.addGameAccount)
 
 router
 .route('/friend/:id')

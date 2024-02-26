@@ -304,8 +304,11 @@ const getTeamPeoplelist = async (req, res, next) => {
         data: [],
         error: null
     }
+
+    const { id } = req.params;
+
     try {
-        const data = await getTeamPeoplelistService(req.params.id);
+        const data = await getTeamPeoplelistService(id);
 
         if (data) {
             response.data = data;

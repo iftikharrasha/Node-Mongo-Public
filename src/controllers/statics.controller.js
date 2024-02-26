@@ -56,7 +56,13 @@ const getLandingStatics = async (req, res, next) => {
                 }else{
                     try {
                         if (serverVersion > clientVersion) {
-                            response.data = data[country];
+                            const countryData = data[country];
+                            const platforms = data.platforms;
+                            const games = data.games;
+                            const refs = data.refs;
+
+                            const sendData = { countryData, platforms, games, refs }
+                            response.data = sendData;
                             response.version = serverVersion;
                         }else {
                             response.status = 304;

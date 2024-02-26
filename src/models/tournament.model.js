@@ -313,10 +313,18 @@ const tournamentSchema = new mongoose.Schema({
     platforms: {
         type: [String],
         enum: {
-            values: ['psn', 'xbox', 'pc', 'mobile', 'nintendo', 'NA'],
+            values: ['cross', 'psn', 'xbox', 'pc', 'mobile', 'nintendo'],
             message: "{VALUE} is not a valid platform!",
         },
-        default: ['NA']
+        default: []
+    },
+    crossPlatforms: {
+        type: [String],
+        enum: {
+            values: ['psn', 'xbox', 'pc', 'mobile', 'nintendo'],
+            message: "{VALUE} is not a valid crossPlay!",
+        },
+        default: []
     },
     region: {
         type: String,
