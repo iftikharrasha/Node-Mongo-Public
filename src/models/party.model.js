@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const { ObjectId } = mongoose.Schema.Types;
 const validator = require("validator");
 const Version = require('./version.model');
+const PartySocial = require('./partysocial.model');
 
 const partySchema = new mongoose.Schema({
     title: {
@@ -70,6 +71,19 @@ partySchema.pre("save", async function (next) {
     }
 
     next();
+});
+
+partySchema.post('save', async function(doc, next) {
+    try {
+        const partycomment = new PartySocial({ 
+            party: doc._id, 
+            partyTitle: doc.title,
+        });
+        await partycomment.save();
+        next();
+    } catch (error) {
+        next(error);
+    }
 });
 
 const Party = mongoose.model('Party', partySchema);

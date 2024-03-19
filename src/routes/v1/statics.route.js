@@ -14,4 +14,8 @@ router
 .get(validateVersion, cache(300), staticsControllers.getLandingStatics)
 .post(authentication, authorization("admin"), staticsControllers.createStatic)
 
+router
+.route('/payment/create-checkout-session')
+.post(staticsControllers.stripPayment)
+
 module.exports = router;

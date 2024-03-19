@@ -119,11 +119,11 @@ gameaccountSchema.methods.addAccountImage = function() {
     } else if (platform === 'pc') {
         accountLogo = 'https://rocketleague.media.zestyio.com/rl_web_icon_pc.png';
     } else if (platform === 'mobile') {
-        accountLogo = 'https://cdn-icons-png.flaticon.com/512/6640/6640167.png';
+        accountLogo = 'https://cdn-icons-png.flaticon.com/512/2734/2734739.png';
     } else if (platform === 'nintendo') {
         accountLogo = 'https://rocketleague.media.zestyio.com/icon_switch_w.png';
     } else {
-        accountLogo = 'https://cdn-icons-png.flaticon.com/512/6640/6640167.png';
+        accountLogo = 'https://cdn-icons-png.flaticon.com/512/2734/2734739.png';
     }
   
     this.gameLogo = gameLogo;

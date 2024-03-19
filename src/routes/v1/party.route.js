@@ -20,6 +20,16 @@ router
 .post(authentication, validateParams, partyControllers.addUserToParty)
 
 router
+.route('/socials/:id')
+.get(validateVersion, validateParams, partyControllers.getPartySocialPostsId)
+.post(authentication, validateParams, partyControllers.addPostToParty)
+
+router
+.route('/comments/:id')
+.get(validateVersion, validateParams, partyControllers.getPartySocialsCommentsById)
+.post(authentication, validateParams, partyControllers.addCommentToPartyPost)
+
+router
 .route("/events/:id")
 .get(authentication, validateVersion, validateParams, partyControllers.getPartyEventsById)
 

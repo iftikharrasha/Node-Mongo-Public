@@ -657,9 +657,6 @@ const tournamentRegistration = async (req, res, next) => {
         const uId = req.user.sub;
         const data = req.body;
         const gameId = req.body.gameId;
-        console.log("tId", tId);
-        console.log("uId", uId);
-        console.log("gameId", gameId);
 
         // save or create
         const purchased = await addToPurchaseService(data);  //but check if user already has this purchased

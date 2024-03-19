@@ -1,5 +1,5 @@
 
-const { createPartyService, getAllPartiesService, getPartyDetailsService, addPartyToUserService, getPartyEventsByIdService, addPartyAnswer, answerConnectToPartyService, getPartyPeoplelistService } = require("../services/party.service");
+const { createPartyService, getAllPartiesService, getPartyDetailsService, addPartyToUserService, getPartyEventsByIdService, addPartyAnswer, answerConnectToPartyService, getPartyPeoplelistService, addPostToPartyService, getPartySocialsByIdService, addCommentToPartyPostService, getPartySocialsCommentsByIdService } = require("../services/party.service");
 const { getVersionTableService } = require("../services/versionTable.service");
 
 const getAllParties = async (req, res, next) => {
@@ -311,6 +311,196 @@ const addUserToParty = async (req, res, next) => {
     }
 };
 
+const getPartySocialPostsId = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: [],
+        error: null
+    }
+
+    const { id } = req.params;
+
+    try {
+        const data = await getPartySocialsByIdService(id);
+
+        if (data) {
+            response.data = data;
+            // response.version = data.version;
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "No party posts found!",
+                target: "database"
+            }
+        }
+    } catch (err) {
+        console.log(err);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred!",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+
+    res.send(response);
+}
+
+const addPostToParty = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null,
+    }
+
+    const { id } = req.params;
+
+    try {
+        const result = await addPostToPartyService(id, req.body);
+        if (result) {
+            response.data = result;
+            response.version = result.version;
+            response.message = "Your post has been published";
+
+            res.send(response);
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.message = "Problem adding post to party";
+            response.error = {
+                code: 400,
+                message: "Problem adding post to party",
+                target: "client side api calling issue"
+            }
+            res.send(response);
+        }
+    } catch (error) {
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+};
+
+const addCommentToPartyPost = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null,
+    }
+    
+    const { id } = req.params;
+    const { postId } = req.query;
+
+    try {
+        const result = await addCommentToPartyPostService(id, postId, req.body);
+        
+        if (result) {
+            response.data = result;
+            response.version = result.version;
+            response.message = "Your comment has been added";
+
+            res.send(response);
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.message = "Problem adding comment to post";
+            response.error = {
+                code: 400,
+                message: "Problem adding comment to post",
+                target: "client side api calling issue"
+            }
+            res.send(response);
+        }
+    } catch (error) {
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+};
+
+const getPartySocialsCommentsById = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: [],
+        error: null
+    }
+
+    const { id } = req.params;
+    const { postId } = req.query;
+    console.log(id, postId)
+
+    try {
+        const data = await getPartySocialsCommentsByIdService(id, postId);
+
+        if (data) {
+            response.data = data;
+            // response.version = data.version;
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "No post comments found!",
+                target: "database"
+            }
+        }
+    } catch (err) {
+        console.log(err);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred!",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+
+    res.send(response);
+}
+
 const getPartyPeoplelist = async (req, res, next) => {
     let response = {
         success: true,
@@ -362,5 +552,9 @@ module.exports = {
     getPartyDetails,
     getPartyEventsById,
     addUserToParty,
-    getPartyPeoplelist
+    getPartyPeoplelist,
+    addPostToParty,
+    getPartySocialPostsId,
+    addCommentToPartyPost,
+    getPartySocialsCommentsById
 }

@@ -1,6 +1,7 @@
 const { getLandingStaticsService, createStaticService } = require("../services/statics.service");
 const { getVersionTableService } = require("../services/versionTable.service");
 var geoip = require('geoip-lite');
+const stripe = require('stripe')('sk_test_51OvGyD02pmMFIceve3qp0yBdPuoRsATXDN5cE4i4vlYG9ml0K3tDIejB3tTtG5oc3EkuLQH7MEyijeRoblV4DkII00mzXGMM8u');
 
 const getLandingStatics = async (req, res, next) => {
     const clientIP = req.ip || req.connection.remoteAddress;
@@ -138,7 +139,34 @@ const createStatic = async (req, res, next) => {
     }
 };
 
+const stripPayment = async (req, res, next) => {
+    const {product} = req.body;
+
+    const lineItem = {
+        price_data: {
+            currency: 'inr',
+            product_data: {
+                name: product.name,
+                images: [product.image],
+            },
+            unit_amount: product.price * 100,
+        },
+        quantity: product.quantity,
+    };
+
+    const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [lineItem], 
+        mode: 'payment',
+        success_url: `http://localhost:5173`,
+        cancel_url: `http://localhost:5173`,
+    });
+
+    res.json({ id: session.id });
+};
+
 module.exports = {
     getLandingStatics,
     createStatic,
+    stripPayment
 }

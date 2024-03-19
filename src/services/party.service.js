@@ -1,4 +1,6 @@
 const Party = require('../models/party.model');
+const PartySocial = require('../models/partysocial.model');
+const PartyComment = require('../models/partycomment.model');
 const Answer = require('../models/answer.model');
 const User = require('../models/user.model')
 const Tournament = require('../models/tournament.model');
@@ -86,6 +88,39 @@ const getPartyPeoplelistService = async (id) => {
     return currentProfile
 };
 
+const addPostToPartyService = async (pId, data) => {
+    const partySocial = await PartySocial.findOneAndUpdate(
+        { party: pId },
+        { $inc: { version: 1 }, $push: { 'posts': data } }
+    );
+
+    return partySocial;
+};
+
+const getPartySocialsByIdService = async (id) => {
+    const partySocial = await PartySocial.find({ party: id })
+                                .populate('posts.author', excludedMasterFields)
+                                .sort({ createdAt: -1 });
+    return partySocial;
+}
+
+const addCommentToPartyPostService = async (pId, postId, data) => {
+    const partyComment = await PartyComment.findOneAndUpdate(
+        { party: pId, partySocial: postId },
+        { $inc: { version: 1 }, $push: { 'comments': data } }
+    );
+
+    return partyComment;
+};
+
+const getPartySocialsCommentsByIdService = async (pId, postId) => {
+    const partySocial = await PartyComment.find({ party: pId, partySocial: postId })
+                                .populate('comments.author comments.mentioned', excludedMasterFields)
+                                .sort({ createdAt: -1 });
+    return partySocial;
+}
+
+
 module.exports = {
     // getMyTeamsByIdService,
     getAllPartiesService,
@@ -95,5 +130,9 @@ module.exports = {
     getPartyEventsByIdService,
     addPartyAnswer,
     answerConnectToPartyService,
-    getPartyPeoplelistService
+    getPartyPeoplelistService,
+    addPostToPartyService,
+    getPartySocialsByIdService,
+    addCommentToPartyPostService,
+    getPartySocialsCommentsByIdService
 }

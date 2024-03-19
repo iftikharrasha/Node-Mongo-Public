@@ -326,7 +326,7 @@ const tournamentSchema = new mongoose.Schema({
         },
         default: []
     },
-    region: {
+    region: { 
         type: String,
         enum: {
             values: ["africa", "asia", "middle east", "europe", "central america", "north america", "south america", "oceania", "global"],
@@ -334,14 +334,14 @@ const tournamentSchema = new mongoose.Schema({
         },
         default: "global",
     },
-    credentials: { 
+    credentials: {  
         type: credentialsSchema,
         default: {
             roomId: null,
             roomPassword: null,
         }
     },
-    prizes: {
+    prizes: { 
         type: prizesSchema,
         default: {
             money: {
@@ -383,17 +383,17 @@ const tournamentSchema = new mongoose.Schema({
         type: ObjectId, 
         ref: "Bracket" 
     }],
-    completionPercentage: {
+    completionPercentage: { 
       type: Number,
       default: 0
     },
-    tournamentStage: {
+    tournamentStage: { 
         type: Number,
         default: 0,
     },
 }, { timestamps: true });
 
-tournamentSchema.pre("save", async function (next) {
+tournamentSchema.pre("save", async function (next) { 
     const versionTable = await Version.findOne({ table: 'tournaments' });
 
     if (versionTable) {
@@ -412,7 +412,7 @@ tournamentSchema.pre("save", async function (next) {
     next();
 });
 
-tournamentSchema.post('save', async function(doc, next) {
+tournamentSchema.post('save', async function(doc, next) { 
     try {
         const leaderboard = new Leaderboard({ 
             tId: doc._id, 
@@ -425,7 +425,7 @@ tournamentSchema.post('save', async function(doc, next) {
     }
 });
 
-tournamentSchema.pre('findOneAndUpdate', async function (next) {
+tournamentSchema.pre('findOneAndUpdate', async function (next) { 
     // Update version table
     const versionTable = await Version.findOne({ table: 'tournaments' });
     if (versionTable) {
