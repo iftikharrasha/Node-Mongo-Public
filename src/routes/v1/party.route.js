@@ -16,8 +16,9 @@ router
 
 router
 .route('/:id')
-.get(validateVersion, validateParams, partyControllers.getPartyDetails)
+.get(authentication, validateVersion, validateParams, partyControllers.getPartyDetails)
 .post(authentication, validateParams, partyControllers.addUserToParty)
+.patch(authentication, validateParams, partyControllers.controlUserRequestToJoinParty)
 
 router
 .route('/socials/:id')
@@ -30,8 +31,12 @@ router
 .post(authentication, validateParams, partyControllers.addCommentToPartyPost)
 
 router
+.route('/reacts/:id')
+.post(authentication, validateParams, partyControllers.addReactToPartyPost)
+
+router
 .route("/events/:id")
-.get(authentication, validateVersion, validateParams, partyControllers.getPartyEventsById)
+.get(validateVersion, validateParams, partyControllers.getPartyEventsById)
 
 router
 .route('/people/:id')

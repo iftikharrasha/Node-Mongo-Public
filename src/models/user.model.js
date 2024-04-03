@@ -210,7 +210,13 @@ const userSchema = new mongoose.Schema({
     },
     parties: {
         owner: [{ type: ObjectId, ref: 'Party'}],
-        joined: [{ type: ObjectId, ref: 'Party'}],
+        // joined: [{ type: ObjectId, ref: 'Party'}],
+        joined: { 
+            type: [{ type: ObjectId, ref: 'Party' }], 
+            default: function() {
+                return ['65851d4304cf34c8d4649e2e'];
+            }
+        },
     },
     teams: [{ type: ObjectId, ref: 'Team' }],
     purchasedItems: {

@@ -1,5 +1,5 @@
 
-const { createPartyService, getAllPartiesService, getPartyDetailsService, addPartyToUserService, getPartyEventsByIdService, addPartyAnswer, answerConnectToPartyService, getPartyPeoplelistService, addPostToPartyService, getPartySocialsByIdService, addCommentToPartyPostService, getPartySocialsCommentsByIdService } = require("../services/party.service");
+const { createPartyService, getAllPartiesService, getPartyDetailsService, addPartyToUserService, getPartyEventsByIdService, addPartyAnswer, answerConnectToPartyService, getPartyPeoplelistService, addPostToPartyService, getPartySocialsByIdService, addCommentToPartyPostService, getPartySocialsCommentsByIdService, addReactToPartyPostService, controlRequestToJoinPartyService } = require("../services/party.service");
 const { getVersionTableService } = require("../services/versionTable.service");
 
 const getAllParties = async (req, res, next) => {
@@ -93,8 +93,9 @@ const getPartyDetails = async (req, res, next) => {
         error: null,
     }
     try {
+        const uId = req.user.sub;
         const clientVersion = parseInt(req.query.version);
-        const data = await getPartyDetailsService(req.params.id);
+        const data = await getPartyDetailsService(req.params.id, uId);
 
         if(!data){
             response.success = false;
@@ -251,6 +252,7 @@ const addANewParty = async (req, res, next) => {
     }
 };
 
+
 const addUserToParty = async (req, res, next) => {
     let response = {
         success: true,
@@ -290,6 +292,52 @@ const addUserToParty = async (req, res, next) => {
             response.error = {
                 code: 400,
                 message: "Problem adding answer to party object",
+                target: "client side api calling issue"
+            }
+            res.send(response);
+        }
+    } catch (error) {
+        console.log(error);
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+};
+
+const controlUserRequestToJoinParty = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null,
+    }
+
+    try {
+        const party = await controlRequestToJoinPartyService(req.params.id, req.body._id, req.query.type);
+        if(party){
+            response.data = party;
+            response.version = party.version;
+            response.message = "Party join request maintained successfully.";
+
+            res.send(response);
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.message = "Problem controlling join request to party object";
+            response.error = {
+                code: 400,
+                message: "Problem controlling join request to party object",
                 target: "client side api calling issue"
             }
             res.send(response);
@@ -453,6 +501,55 @@ const addCommentToPartyPost = async (req, res, next) => {
     }
 };
 
+const addReactToPartyPost = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        signed_in: false,
+        version: 1,
+        data: {},
+        error: null,
+    }
+    
+    const { id } = req.params;
+    const { postId } = req.query;
+
+    try {
+        const result = await addReactToPartyPostService(id, postId, req.body);
+        
+        if (result) {
+            response.data = result;
+            response.version = result.version;
+            response.message = "Post reaction has been added";
+
+            res.send(response);
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.message = "Problem adding reaction to post";
+            response.error = {
+                code: 400,
+                message: "Problem adding comment to post",
+                target: "client side api calling issue"
+            }
+            res.send(response);
+        }
+    } catch (error) {
+        res.send({
+            success: false,
+            status: 500,
+            data: null,
+            signed_in: false,
+            version: 1,
+            error: { 
+                code: 500, 
+                message: "An Internal Error Has Occurred",
+                target: "approx what the error came from", 
+            }
+        });
+    }
+};
+
 const getPartySocialsCommentsById = async (req, res, next) => {
     let response = {
         success: true,
@@ -544,6 +641,88 @@ const getPartyPeoplelist = async (req, res, next) => {
     res.send(response);
 }
 
+const addPartyImage = async (req, res, next) => {
+    let response = {
+        success: true,
+        status: 200,
+        version: 1,
+        data: {},
+        error: null,
+        message: "Success",
+    }
+
+    const { Bucket, Key } = req.settings || {};
+    const imageUrl = Bucket && Key ? `https://${Bucket}.s3.amazonaws.com/${Key}` : null;
+    // https://e24reactor-s3-bucket.s3.amazonaws.com/images/party/uuid-orginalname.png
+
+    try {
+        if(req.status === 200 && imageUrl){
+            try {
+                const partyId =  req.params.id;
+                const author = req.user.sub;
+
+                const data = {
+                    author: author,
+                    title: req.body.title,
+                    description: req.body.desc,
+                    thumbnail: imageUrl
+                }
+                const result = await addPostToPartyService(partyId, data);
+                // console.log(result);
+
+                response.data = result;
+                response.message = "Party post uploaded successfully";
+                res.send(response);
+            } catch (error) {
+                response.success = false;
+                response.status = 400;
+                response.message = req.err;
+                response.error = {
+                    code: 400,
+                    message: "Party image upload issue",
+                    target: "client side api calling issue"
+                }
+
+                res.send(response);
+            }
+        }else{
+            response.success = false;
+            response.status = 400;
+            response.message = req.err;
+            response.error = {
+                code: 400,
+                message: req.err || "Unknown error",
+                target: "client side api calling issue"
+            }
+
+            res.send(response);
+        }
+    } catch (error) {
+        response.success = false;
+        response.status = 400;
+        response.message = req.err;
+        response.error = {
+            code: 400,
+            message: req.err || error.message,
+            target: "client side api calling issue"
+        }
+
+        res.send(response);
+    }
+};
+
+const makeImageReady = async (req, res, next) => {
+    console.log(req.file)
+    let response = {
+        success: true,
+        status: 200,
+        version: 1,
+        data: {},
+        error: null,
+    }
+    res.send(response);
+};
+
 module.exports = {
     // getAllTeams,
     // getMyTeamsById,
@@ -556,5 +735,9 @@ module.exports = {
     addPostToParty,
     getPartySocialPostsId,
     addCommentToPartyPost,
-    getPartySocialsCommentsById
+    addReactToPartyPost,
+    getPartySocialsCommentsById,
+    addPartyImage,
+    makeImageReady,
+    controlUserRequestToJoinParty
 }

@@ -328,7 +328,6 @@ const addUserToTournamentObjectLeaderboard = async (tId, uId) => {
                 { new: true }
             );
             
-            // console.log(result);
             return result;
         }
     }else{

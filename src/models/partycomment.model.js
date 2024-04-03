@@ -2,6 +2,27 @@ const mongoose = require('mongoose');
 const { ObjectId } = mongoose.Schema.Types;
 const Version = require('./version.model');
 
+const commentSchema = new mongoose.Schema({
+    author: {
+        type: ObjectId,
+        ref: 'User',
+        required: true
+    },
+    comment: {
+        type: String,
+        required: true
+    },
+    mentioned: {
+        type: ObjectId,
+        ref: 'User'
+    },
+    version: {
+        type: Number,
+        default: 1
+    }
+}, { timestamps: true });
+
+
 const partyCommentSchema = new mongoose.Schema({
     partySocial: {
         type: ObjectId,
@@ -17,27 +38,7 @@ const partyCommentSchema = new mongoose.Schema({
         type: Number, 
         default: 1 
     },
-    comments: [
-        {
-            author: {
-                type: ObjectId,
-                ref: 'User',
-                required: true
-            },
-            comment: {
-                type: String,
-                required: true
-            },
-            mentioned: {
-                type: ObjectId,
-                ref: 'User'
-            },
-            version: {
-                type: Number,
-                default: 1
-            }
-        },
-    ],
+    comments: [commentSchema],
 }, { timestamps: true });
 
 partyCommentSchema.pre("save", async function (next) {
@@ -53,5 +54,5 @@ partyCommentSchema.pre("save", async function (next) {
     next();
 });
 
-const partyComment = mongoose.model('PartyComment', partyCommentSchema);
-module.exports = partyComment;
+const PartyComment = mongoose.model('PartyComment', partyCommentSchema);
+module.exports = PartyComment;

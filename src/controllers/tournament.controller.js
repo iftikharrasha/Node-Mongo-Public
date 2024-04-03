@@ -916,7 +916,7 @@ const getAllInternalTournaments = async (req, res, next) => {
     res.send(response);
 }
 
-const addNewFile = async (req, res, next) => {
+const addTournamentImage = async (req, res, next) => {
     let response = {
         success: true,
         status: 200,
@@ -933,6 +933,8 @@ const addNewFile = async (req, res, next) => {
     try {
         if(req.status === 200 && imageUrl){
             try {
+                // const author = req.user.sub;
+                // console.log(author)
                 const tid =  req.params.id;
                 const result = await addTournamentThumbnailService(tid, imageUrl);
                 // console.log(result);
@@ -988,5 +990,5 @@ module.exports = {
     tournamentRegistration,
     getAllMasterTournaments,
     getAllInternalTournaments,
-    addNewFile
+    addTournamentImage
 }

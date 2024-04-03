@@ -23,6 +23,8 @@ const upload = multer({
 });
 
 const fileUpload = async (req, res, next) => {
+  const { path } = req.query; 
+  
   try {
     upload.single("file")(req, res, async function (err) {
       if (err instanceof multer.MulterError) {
@@ -39,7 +41,7 @@ const fileUpload = async (req, res, next) => {
         req.err = err.message;
       } else {
         try {
-          const { result, settings } = await s3Uploadv3(req.file);
+          const { result, settings } = await s3Uploadv3(req.file, path);
           // console.log(result);
           if (result.$metadata.httpStatusCode === 200) {
             req.settings = settings;

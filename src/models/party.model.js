@@ -75,11 +75,11 @@ partySchema.pre("save", async function (next) {
 
 partySchema.post('save', async function(doc, next) {
     try {
-        const partycomment = new PartySocial({ 
+        const partysocial = new PartySocial({ 
             party: doc._id, 
             partyTitle: doc.title,
         });
-        await partycomment.save();
+        await partysocial.save();
         next();
     } catch (error) {
         next(error);

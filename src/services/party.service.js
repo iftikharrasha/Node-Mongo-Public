@@ -1,6 +1,6 @@
 const Party = require('../models/party.model');
 const PartySocial = require('../models/partysocial.model');
-const PartyComment = require('../models/partycomment.model');
+const PartyComment = require('../models/partyComment.model');
 const Answer = require('../models/answer.model');
 const User = require('../models/user.model')
 const Tournament = require('../models/tournament.model');
@@ -12,14 +12,21 @@ const getAllPartiesService = async () => {
     return parties;
 }
 
-// const getMyTeamsByIdService = async (id) => {
-//     const topup = await Party.find({ captainId: id });
-//     return topup;
-// }
-
-const getPartyDetailsService = async (id) => {
+const getPartyDetailsService = async (id, uId) => {
     const party = await Party.findOne({ _id: id })
-                             .populate('owner', excludedMasterFields); 
+                             .populate('owner', excludedMasterFields)
+                             .lean(); 
+    
+    // Check if author is the owner of the party
+    const isOwner = party.owner._id.toString() === uId;
+
+    // Check if author is joined in the party members
+    const isJoined = party.members.joined.some(member => member._id.toString() === uId);
+
+    // party.isOwner = isOwner;
+    // party.isJoined = isJoined;
+    party.unlocked = isOwner || isJoined;
+
     return party;
 }
 
@@ -62,7 +69,6 @@ const addPartyAnswer = async (data) => {
 const answerConnectToPartyService = async (partyId, answerId, uId) => {
     //pushing user id inside the tournament leaderboard
     const currentParty = await Party.findOne({ _id: partyId });
-    console.log(uId, answerId, currentParty)
 
     if(currentParty){
         const result = await Party.findOneAndUpdate(
@@ -77,11 +83,42 @@ const answerConnectToPartyService = async (partyId, answerId, uId) => {
     }
 }
 
-const getPartyPeoplelistService = async (id) => {
+//master
+const controlRequestToJoinPartyService = async (partyId, uId, type) => {
+    console.log(partyId, uId, type);
+    let updateQuery = {};
+    if (type === 'approve') {
+        updateQuery = {  $inc: { version: 1 }, $push: { "members.joined": uId }, $pull: { "members.requested": uId } };
+    } else if (type === 'reject') {
+        updateQuery = {  $inc: { version: 1 }, $pull: { "members.requested": uId } };
+    }
+
+    const result = await Party.findOneAndUpdate(
+        { _id: partyId },
+        updateQuery,
+        { new: true }
+    );
+    console.log(result)
+    
+    return result;
+}
+
+// const getPartyPeoplelistService = async (id) => { 
+//     const currentProfile = await Party.findOne({ _id: id })
+//                                 .select('members.joined members.requested members.invited')
+//                                 .populate({
+//                                     path: 'members.joined members.requested members.invited',
+//                                     select: excludedMasterFields,
+//                                 });
+    
+//     return currentProfile
+// };
+
+const getPartyPeoplelistService = async (id) => { 
     const currentProfile = await Party.findOne({ _id: id })
-                                .select('members.joined members.requested members.invited')
+                                .select('title questions answers members.joined members.requested members.invited')
                                 .populate({
-                                    path: 'members.joined members.requested members.invited',
+                                    path: 'answers members.joined members.requested members.invited',
                                     select: excludedMasterFields,
                                 });
     
@@ -91,27 +128,89 @@ const getPartyPeoplelistService = async (id) => {
 const addPostToPartyService = async (pId, data) => {
     const partySocial = await PartySocial.findOneAndUpdate(
         { party: pId },
-        { $inc: { version: 1 }, $push: { 'posts': data } }
+        { $inc: { version: 1 }, $push: { 'posts': data } },
+        { new: true }
     );
+
+    const lastPost = partySocial.posts[partySocial.posts.length - 1];
+
+    const partyComment = new PartyComment({
+        partySocial: lastPost._id,
+        party: partySocial.party,
+    });
+    await partyComment.save();
 
     return partySocial;
 };
 
 const getPartySocialsByIdService = async (id) => {
-    const partySocial = await PartySocial.find({ party: id })
-                                .populate('posts.author', excludedMasterFields)
-                                .sort({ createdAt: -1 });
+    const partySocial = await PartySocial.findOne({ party: id }).populate('posts.author', excludedMasterFields);
+
+    if (!partySocial) {
+        return null;
+    }
+
+    partySocial.posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     return partySocial;
 }
 
 const addCommentToPartyPostService = async (pId, postId, data) => {
     const partyComment = await PartyComment.findOneAndUpdate(
         { party: pId, partySocial: postId },
-        { $inc: { version: 1 }, $push: { 'comments': data } }
+        { $inc: { version: 1 }, $push: { 'comments': data } },
+        { new: true }
     );
 
     return partyComment;
 };
+
+const addReactToPartyPostService = async (pId, postId, data) => {
+    const { from, type, to } = data;
+
+    try {
+        let updateQuery = {};
+        if (type === '+') {
+            updateQuery = { 
+                $push: { 'posts.$.reacts.likes': from }, 
+                $pull: { 'posts.$.reacts.dislikes': from } 
+            };
+            // updateQuery = { $addToSet: { 'posts.$.reacts.likes': from }, $pull: { 'posts.$.reacts.dislikes': from } }; //clear the array
+        } else if (type === '-') {
+            updateQuery = { 
+                $push: { 'posts.$.reacts.dislikes': from }, 
+                $pull: { 'posts.$.reacts.likes': from } 
+            };
+            // updateQuery = { $addToSet: { 'posts.$.reacts.dislikes': from }, $pull: { 'posts.$.reacts.likes': from } }; //clear the array
+        }
+
+        try {
+            const result = await PartySocial.findOneAndUpdate(
+                { 
+                  'party': pId, 
+                  'posts._id': postId 
+                },
+                updateQuery,
+                { 
+                  new: true 
+                }
+            );
+
+            if (result) {
+                console.log(`Successfully updated reaction for post ${postId} in PartySocial ${pId}`);
+            } else {
+                console.log(`Failed to update reaction for post ${postId} in PartySocial ${pId}`);
+            }
+            return { success: true, message: type === '+' ? 'liked' : 'disliked' };
+        } catch (error) {
+            console.error('Error adding react to party post:', error);
+            return { success: false, message: 'An error occurred while adding react to party post.' };
+        }
+    } catch (error) {
+        console.error('Error adding react to party post:', error);
+        return { success: false, message: 'An error occurred' };
+    }
+};
+
 
 const getPartySocialsCommentsByIdService = async (pId, postId) => {
     const partySocial = await PartyComment.find({ party: pId, partySocial: postId })
@@ -120,6 +219,13 @@ const getPartySocialsCommentsByIdService = async (pId, postId) => {
     return partySocial;
 }
 
+// const addPartyPostThumbnailService = async (id, url) => {
+//     const result = await PartySocial.findOneAndUpdate({ party: id }, {tournamentThumbnail: url}, {
+//         new: true,
+//         runValidators: false
+//     });
+//     return result;
+// }
 
 module.exports = {
     // getMyTeamsByIdService,
@@ -134,5 +240,8 @@ module.exports = {
     addPostToPartyService,
     getPartySocialsByIdService,
     addCommentToPartyPostService,
-    getPartySocialsCommentsByIdService
+    addReactToPartyPostService,
+    getPartySocialsCommentsByIdService,
+    controlRequestToJoinPartyService,
+    // addPartyPostThumbnailService
 }
