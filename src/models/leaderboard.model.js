@@ -12,6 +12,11 @@ const leaderboardSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  entryType: {
+      type: String,
+      enum: ['solo', 'team'], // Specify the entry type
+      required: true
+  },
   version: { 
     type: Number, 
     default: 1 
@@ -25,6 +30,10 @@ const leaderboardSchema = new mongoose.Schema({
         gameAccount: {
             type: ObjectId,
             ref: "GameAccount",
+        },
+        team: {
+            type: ObjectId,
+            ref: "Team",
         },
     },
   ],

@@ -2,6 +2,7 @@ const Tournament = require('../models/tournament.model')
 const Leaderboard = require('../models/leaderboard.model')
 const Bracket = require('../models/bracket.model')
 const User = require('../models/user.model')
+const Team = require('../models/team.model')
 const moment = require('moment');
 const mongoose = require("mongoose");
 
@@ -72,29 +73,25 @@ const getTournamentDetailsService = async (id) => {
     return tournament;
 }
 
-//3. PREVIOUSONE
-// const getLeaderboardsService = async (id) => {
-//     const leaderboard = await Leaderboard.findOne({ tId: id })
-//                                         .populate({
-//                                             path: 'leaderboards',
-//                                             select: excludedUserFields,
-//                                             match: { status: { $ne: 'blocked' } } //we get users who are not blocked
-//                                         });
-//     return leaderboard;
-// }
-
 const getLeaderboardsService = async (id) => {
     const leaderboard = await Leaderboard.findOne({ tId: id })
                                         .populate({
                                             path: 'leaderboards.gamer',
                                             select: excludedUserFields,
-                                            match: { status: { $ne: 'blocked' } } //we get users who are not blocked
+                                            match: { status: { $ne: 'blocked' } }
                                         })
                                         .populate({
-                                            path: 'leaderboards.gameAccount', // Populate the 'gameAccount' field within the 'leaderboards' array
+                                            path: 'leaderboards.gameAccount', 
                                             select: excludedGameAccountFields
                                         })
-                                        .lean(); // Use 'lean' to convert the result to a plain JavaScript object;
+                                        .populate({
+                                            path: 'leaderboards.team',
+                                            populate: [
+                                                { path: 'captainId', select: excludedUserFields },
+                                                { path: 'members.mates', select: excludedUserFields }
+                                            ]
+                                        })
+                                        .lean();
     return leaderboard;
 }
 
@@ -335,6 +332,36 @@ const addUserToTournamentObjectLeaderboard = async (tId, uId) => {
     }
 }
 
+const checkTeamMembersInLeaderboard = async (tId, teamId) => {
+    const team = await Team.findById(teamId);
+    
+    const members = team.members.mates;
+    const captainId = team.captainId;
+
+    // Add captainId to members array
+    members.push(captainId);
+    console.log("0. members", members);
+
+    // Check if any of the members or captainId belong to the tournament leaderboards
+    const exists = await Tournament.findOne({ _id: tId, 'leaderboards': { $in: members } });
+    if (exists) {
+        return { members: members, exists: true }; 
+    } else {
+        return { members: members, exists: false };
+    }
+}
+
+const addMembersToTournamentObjectLeaderboard = async (tId, members) => {
+    // Add members to tournament leaderboard
+    const result = await Tournament.findOneAndUpdate(
+        { _id: tId }, 
+        { $addToSet: { 'leaderboards': { $each: [...members] } } },
+        { new: true }
+    );
+
+    return result;
+}
+
 const deleteTournamentByIdService = async (id) => {
     const result = await Tournament.findByIdAndDelete({ _id: id });
     return result;
@@ -406,6 +433,40 @@ const addUserToLeaderboardService = async (tId, uId, gameId) => {
     }
 };
 
+const addTeamToLeaderboardService = async (tId, uId, teamId) => {
+    //pushing user id inside separate leaderboard
+    const currentLeaderboard = await Leaderboard.findOne({ tId: tId });
+    // console.log("currentLeaderboard", currentLeaderboard)
+
+    const teamIndex = currentLeaderboard.leaderboards.findIndex(entry => entry.team.equals(teamId));
+    console.log('teamIndex')
+
+    if (teamIndex !== -1) {
+        console.log('Team already exists')
+        return false
+    } else {
+        // Create a new entry with the team
+        const newLeaderboardEntry = {
+            team: teamId,
+        };
+        console.log('newLeaderboardEntry', newLeaderboardEntry)
+
+        const result = await Leaderboard.findOneAndUpdate(
+            { _id: currentLeaderboard._id },
+            {
+                $addToSet: {
+                    leaderboards: newLeaderboardEntry,
+                },
+                $inc: { version: 1 },
+            },
+            { new: true }
+        );
+        console.log('leaderboard push done', result)
+        
+        return result;
+    }
+};
+
 const bookUserToBracketSlotService = async (tId, uId) => {
     try {
         const bracket = await Bracket.findOne({ tId: tId });
@@ -428,6 +489,56 @@ const bookUserToBracketSlotService = async (tId, uId) => {
                 status: null,
                 name: user.userName,
                 picture: user.photo
+            }
+
+            // Create a deep copy of the selectedMatch to avoid mutation
+            const modifiedMatch = JSON.parse(JSON.stringify(selectedMatch));
+
+            // Add the new participant to the copied match
+            modifiedMatch.participants.push(convertedToParticipant);
+            
+            // Save/update the new entry to the Bracket model
+            const updatedBracket = await Bracket.findOneAndUpdate(
+                { tId: tId, 'matches.id': selectedMatch.id },
+                    { $set: { 
+                        'matches.$': modifiedMatch,
+                        version: bracket.version + 1,
+                    } 
+                },
+                { new: true }
+            );
+
+            return modifiedMatch;
+        }
+
+        return false;
+    } catch (error) {
+        console.log(error);
+    }
+};
+
+const bookTeamToBracketSlotService = async (tId, teamId) => {
+    try {
+        const bracket = await Bracket.findOne({ tId: tId });
+        const matches = bracket.matches;
+
+        // Get the matches of the first round
+        const firstRoundMatches = matches.filter(
+            (match) => match.tournamentRoundText === "1"
+        );
+        
+        // Shuffle the array of matches to randomly select a match for the user
+        const selectedMatch = getRandomMatchWithVacancy(firstRoundMatches);
+
+        if (selectedMatch) {
+            const team = await Team.findOne({ _id: teamId });
+            const convertedToParticipant = {
+                id: team._id,
+                resultText: null,
+                isWinner: false,
+                status: null,
+                name: team.teamName,
+                picture: team.photo
             }
 
             // Create a deep copy of the selectedMatch to avoid mutation
@@ -623,6 +734,9 @@ module.exports = {
     getLeaderboardsService,
     getTournamentResultService,
     addUserToLeaderboardService,
+    addTeamToLeaderboardService,
+    checkTeamMembersInLeaderboard,
+    addMembersToTournamentObjectLeaderboard,
     getBracketService,
     getCredentialsService,
     updateTournamentCredentialsService,
@@ -632,6 +746,7 @@ module.exports = {
     addUserToTournamentObjectLeaderboard,
     addTournamentThumbnailService,
     bookUserToBracketSlotService,
+    bookTeamToBracketSlotService,
     deleteTournamentBracketByIdService
 }
 

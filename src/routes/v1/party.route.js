@@ -12,7 +12,19 @@ const validateParams = require("../../middlewares/validateParams");
 router
 .route('/')
 .get(partyControllers.getAllParties)
-.post(authentication, authorization("master", "admin"), partyControllers.addANewParty)
+.post(authentication, authorization("master", "admin"), validateVersion, partyControllers.addANewParty)
+
+router
+.route('/master')
+.get(authentication, authorization("master", "admin"), validateVersion, partyControllers.getMasterAllParties)
+
+router
+.route('/profile')
+.get(authentication, validateVersion, partyControllers.getProfileAllParties)
+
+router
+.route('/related/:id')
+.get(authentication, validateVersion, validateParams, partyControllers.getPartiesYouMayLike)
 
 router
 .route('/:id')

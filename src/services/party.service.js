@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Party = require('../models/party.model');
 const PartySocial = require('../models/partysocial.model');
 const PartyComment = require('../models/partyComment.model');
@@ -8,9 +9,66 @@ const excludedMasterFields = '-firstName -lastName -requests -parties -purchased
 
 const getAllPartiesService = async () => {
     const parties = await Party.find({ status: 'active' })
+                                .sort({createdAt: -1})
                                 .populate('owner', excludedMasterFields);
     return parties;
 }
+
+const getMasterAllPartiesService = async (id) => {
+    const parties = await Party.find({ owner: id, status: 'active' })
+                                .sort({createdAt: -1})
+                                .populate('owner', excludedMasterFields);
+    return parties;
+}
+
+const getProfileAllPartiesService = async (id) => {
+    const parties = await Party.find({ 'members.joined': id, status: 'active' })
+                                .sort({ createdAt: -1 })
+                                .populate('owner', excludedMasterFields);
+    return parties;
+}
+
+// const getPartiesYouMayLikeService = async (id) => {
+//     const parties = await Party.find({ _id: { $ne: id }, status: 'active' })
+//                                 .sort({createdAt: -1})
+//                                 .populate('owner', excludedMasterFields)
+//                                 .limit(10);
+//     return parties;
+// }
+
+const getPartiesYouMayLikeService = async (id) => {
+    const objectId = new mongoose.Types.ObjectId(id);
+    const randomValue = Math.random();
+    const parties = await Party.aggregate([
+        { $match: { _id: { $ne: objectId }, status: 'active' } },
+        { $sample: { size: 10 } },
+        { $addFields: { random: randomValue } }, // Add a random field to each document
+        { $sort: { random: 1 } }, // Sort them by the random field
+        // { $sort: { createdAt: -1 } },
+        { $lookup: { from: 'users', localField: 'owner', foreignField: '_id', as: 'owner' } },
+        { $unwind: '$owner' },
+        {
+            $project: {
+                _id: 1,
+                title: 1,
+                createdAt: 1,
+                photo: 1,
+                owner: {
+                    _id: 1,
+                    userName: 1,
+                    photo: 1,
+                    // Add other fields you want from the owner
+                }
+            }
+        }
+    ]);
+
+    return parties;
+}
+
+
+
+
 
 const getPartyDetailsService = async (id, uId) => {
     const party = await Party.findOne({ _id: id })
@@ -40,25 +98,35 @@ const createPartyService = async (data) => {
     return party;
 }
 
-const addPartyToUserService = async (uId, partyId) => {
-    //pushing party id inside the user
-    const currentUser = await User.findOne({ _id: uId });
-
-    if(currentUser){
-        if (currentUser.parties.owner.indexOf(partyId) !== -1) {
-            return false
-        } else {
-            const result = await User.findOneAndUpdate(
-                { _id: currentUser._id },
-                {  $inc: { version: 1 }, $push: { "parties.owner": partyId } },
-                { new: true }
-            );
-            
-            return result;
-        }
-    }else{
-        return false
+const addPartyToUserService = async (uId, partyId, type) => {
+    let updateQuery = {};
+    if(type === 'create'){
+        updateQuery = {  
+            $inc: { version: 1 }, 
+            $addToSet: { "parties.owner": { $each: [partyId], $ne: partyId } },
+            // $push: { "parties.owner": partyId } 
+        };
     }
+    else if (type === 'approve') {
+        updateQuery = {  
+            $inc: { version: 1 }, 
+            $addToSet: { "parties.joined": { $each: [partyId], $ne: partyId } },
+            // $push: { "parties.joined": uId }, 
+        };
+    } else if (type === 'remove') {
+        updateQuery = {  
+            $inc: { version: 1 }, 
+            $pull: { "parties.joined": uId } 
+        };
+    }
+    
+    const result = await User.findOneAndUpdate(
+        { _id: uId },
+        updateQuery,
+        { new: true }
+    );
+
+    return result
 };
 
 const addPartyAnswer = async (data) => {
@@ -88,9 +156,23 @@ const controlRequestToJoinPartyService = async (partyId, uId, type) => {
     console.log(partyId, uId, type);
     let updateQuery = {};
     if (type === 'approve') {
-        updateQuery = {  $inc: { version: 1 }, $push: { "members.joined": uId }, $pull: { "members.requested": uId } };
+        updateQuery = {  
+            $inc: { version: 1 }, 
+            $addToSet: { "members.joined": { $each: [uId], $ne: uId } },
+            // $push: { "members.joined": uId }, 
+            $pull: { "members.requested": uId } 
+        };
     } else if (type === 'reject') {
-        updateQuery = {  $inc: { version: 1 }, $pull: { "members.requested": uId } };
+        updateQuery = {  
+            $inc: { version: 1 },
+            // $push: { "members.requested": uId },  
+            $pull: { "members.requested": uId } 
+        };
+    } else if (type === 'remove') {
+        updateQuery = {  
+            $inc: { version: 1 }, 
+            $pull: { "members.joined": uId } 
+        };
     }
 
     const result = await Party.findOneAndUpdate(
@@ -230,6 +312,9 @@ const getPartySocialsCommentsByIdService = async (pId, postId) => {
 module.exports = {
     // getMyTeamsByIdService,
     getAllPartiesService,
+    getMasterAllPartiesService,
+    getProfileAllPartiesService,
+    getPartiesYouMayLikeService,
     createPartyService,
     getPartyDetailsService,
     addPartyToUserService,

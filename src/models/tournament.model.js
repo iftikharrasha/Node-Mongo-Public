@@ -416,7 +416,8 @@ tournamentSchema.post('save', async function(doc, next) {
     try {
         const leaderboard = new Leaderboard({ 
             tId: doc._id, 
-            tName: doc.tournamentName 
+            tName: doc.tournamentName,
+            entryType: doc.settings.mode
         });
         await leaderboard.save();
         next();

@@ -1,5 +1,5 @@
 
-const { createPartyService, getAllPartiesService, getPartyDetailsService, addPartyToUserService, getPartyEventsByIdService, addPartyAnswer, answerConnectToPartyService, getPartyPeoplelistService, addPostToPartyService, getPartySocialsByIdService, addCommentToPartyPostService, getPartySocialsCommentsByIdService, addReactToPartyPostService, controlRequestToJoinPartyService } = require("../services/party.service");
+const { createPartyService, getAllPartiesService, getPartyDetailsService, addPartyToUserService, getPartyEventsByIdService, addPartyAnswer, answerConnectToPartyService, getPartyPeoplelistService, addPostToPartyService, getPartySocialsByIdService, addCommentToPartyPostService, getPartySocialsCommentsByIdService, addReactToPartyPostService, controlRequestToJoinPartyService, getMasterAllPartiesService, getProfileAllPartiesService, getPartiesYouMayLikeService } = require("../services/party.service");
 const { getVersionTableService } = require("../services/versionTable.service");
 
 const getAllParties = async (req, res, next) => {
@@ -27,6 +27,170 @@ const getAllParties = async (req, res, next) => {
             
             try {
                 const data = await getAllPartiesService();
+                const versionData = await getVersionTableService();
+
+                if (data.length > 0) {
+                    try {
+                        let serverVersion = 0;
+                        const tableData = versionData.find( item => item.table === "parties");
+                        if (tableData && tableData.version) {
+                            serverVersion = tableData.version;
+                        }
+
+                        if (serverVersion > clientVersion) {
+                            response.data = data;
+                            response.version = serverVersion;
+                        }else {
+                            response.status = 304;
+                            response.version = serverVersion;
+                            response.error = {
+                                code: 304,
+                                message: "Client have the latest version",
+                                target: "fetch data from the redux store"
+                            }
+                        }
+                    } catch (err) {
+                        response.data = null;
+                        response.success = false;
+                        response.status = 500;
+                        response.version = serverVersion;
+                        response.error = {
+                            code: 500,
+                            message: "An Internal Error Has Occurred!",
+                            target: "approx what the error came from"
+                        }
+                    }
+                }
+            } catch (err) {
+                console.log(err);
+                res.send({
+                    success: false,
+                    status: 500,
+                    data: null,
+                    signed_in: false,
+                    version: 1,
+                    error: { 
+                        code: 500, 
+                        message: "An Internal Error Has Occurred!",
+                        target: "approx what the error came from", 
+                    }
+                });
+            }
+    
+            res.send(response);
+        }
+    }catch(err){
+       next(err);
+    }
+}
+
+const getMasterAllParties = async (req, res, next) => {
+    try{
+        let response = {
+            success: true,
+            status: 200,
+            signed_in: false,
+            version: 1,
+            data: [],
+            error: null
+        }
+    
+        if(!req.query.version){
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "Missing version query parameter!",
+                target: "client side api calling issue"
+            }
+            res.send(response);
+        }else{
+            const clientVersion = parseInt(req.query.version);
+            
+            try {
+                const data = await getMasterAllPartiesService(req.user.sub);
+                const versionData = await getVersionTableService();
+
+                if (data.length > 0) {
+                    try {
+                        let serverVersion = 0;
+                        const tableData = versionData.find( item => item.table === "parties");
+                        if (tableData && tableData.version) {
+                            serverVersion = tableData.version;
+                        }
+
+                        if (serverVersion > clientVersion) {
+                            response.data = data;
+                            response.version = serverVersion;
+                        }else {
+                            response.status = 304;
+                            response.version = serverVersion;
+                            response.error = {
+                                code: 304,
+                                message: "Client have the latest version",
+                                target: "fetch data from the redux store"
+                            }
+                        }
+                    } catch (err) {
+                        response.data = null;
+                        response.success = false;
+                        response.status = 500;
+                        response.version = serverVersion;
+                        response.error = {
+                            code: 500,
+                            message: "An Internal Error Has Occurred!",
+                            target: "approx what the error came from"
+                        }
+                    }
+                }
+            } catch (err) {
+                console.log(err);
+                res.send({
+                    success: false,
+                    status: 500,
+                    data: null,
+                    signed_in: false,
+                    version: 1,
+                    error: { 
+                        code: 500, 
+                        message: "An Internal Error Has Occurred!",
+                        target: "approx what the error came from", 
+                    }
+                });
+            }
+    
+            res.send(response);
+        }
+    }catch(err){
+       next(err);
+    }
+}
+
+const getProfileAllParties = async (req, res, next) => {
+    try{
+        let response = {
+            success: true,
+            status: 200,
+            signed_in: false,
+            version: 1,
+            data: [],
+            error: null
+        }
+    
+        if(!req.query.version){
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "Missing version query parameter!",
+                target: "client side api calling issue"
+            }
+            res.send(response);
+        }else{
+            const clientVersion = parseInt(req.query.version);
+            
+            try {
+                const data = await getProfileAllPartiesService(req.user.sub);
                 const versionData = await getVersionTableService();
 
                 if (data.length > 0) {
@@ -132,6 +296,88 @@ const getPartyDetails = async (req, res, next) => {
     res.send(response);
 };
 
+const getPartiesYouMayLike = async (req, res, next) => {
+    try{
+        let response = {
+            success: true,
+            status: 200,
+            signed_in: false,
+            version: 1,
+            data: [],
+            error: null
+        }
+    
+        if(!req.query.version){
+            response.success = false;
+            response.status = 400;
+            response.error = {
+                code: 400,
+                message: "Missing version query parameter!",
+                target: "client side api calling issue"
+            }
+            res.send(response);
+        }else{
+            const clientVersion = parseInt(req.query.version);
+            
+            try {
+                const data = await getPartiesYouMayLikeService(req.params.id);
+                const versionData = await getVersionTableService();
+
+                if (data.length > 0) {
+                    try {
+                        let serverVersion = 0;
+                        const tableData = versionData.find( item => item.table === "parties");
+                        if (tableData && tableData.version) {
+                            serverVersion = tableData.version;
+                        }
+
+                        if (serverVersion > clientVersion) {
+                            response.data = data;
+                            response.version = serverVersion;
+                        }else {
+                            response.status = 304;
+                            response.version = serverVersion;
+                            response.error = {
+                                code: 304,
+                                message: "Client have the latest version",
+                                target: "fetch data from the redux store"
+                            }
+                        }
+                    } catch (err) {
+                        response.data = null;
+                        response.success = false;
+                        response.status = 500;
+                        response.version = serverVersion;
+                        response.error = {
+                            code: 500,
+                            message: "An Internal Error Has Occurred!",
+                            target: "approx what the error came from"
+                        }
+                    }
+                }
+            } catch (err) {
+                console.log(err);
+                res.send({
+                    success: false,
+                    status: 500,
+                    data: null,
+                    signed_in: false,
+                    version: 1,
+                    error: { 
+                        code: 500, 
+                        message: "An Internal Error Has Occurred!",
+                        target: "approx what the error came from", 
+                    }
+                });
+            }
+    
+            res.send(response);
+        }
+    }catch(err){
+       next(err);
+    }
+}
+
 const getPartyEventsById = async (req, res, next) => {
     let response = {
         success: true,
@@ -209,8 +455,9 @@ const addANewParty = async (req, res, next) => {
     try {
         // save or create
         const party = await createPartyService(req.body);
+        const type = 'create';
         if(party) {
-            const partyOwner = await addPartyToUserService(req.body.owner, party._id.toString());
+            const partyOwner = await addPartyToUserService(req.body.owner, party._id.toString(), type);
             if(partyOwner) {
                 response.data = party;
                 response.message = "Party created successfully";
@@ -326,11 +573,24 @@ const controlUserRequestToJoinParty = async (req, res, next) => {
     try {
         const party = await controlRequestToJoinPartyService(req.params.id, req.body._id, req.query.type);
         if(party){
-            response.data = party;
-            response.version = party.version;
-            response.message = "Party join request maintained successfully.";
-
-            res.send(response);
+            const partyOwner = await addPartyToUserService(req.body._id, req.params.id, req.query.type);
+            if(partyOwner) {
+                response.data = party;
+                response.version = party.version;
+                response.message = "Party join request maintained successfully.";
+    
+                res.send(response);
+            }else{
+                response.success = false;
+                response.status = 400;
+                response.message = "Problem adding party membership to user object";
+                response.error = {
+                    code: 400,
+                    message: "Problem adding party owner to user object",
+                    target: "client side api calling issue"
+                }
+                res.send(response);
+            }
         }else{
             response.success = false;
             response.status = 400;
@@ -728,6 +988,9 @@ module.exports = {
     // getMyTeamsById,
     addANewParty,
     getAllParties,
+    getMasterAllParties,
+    getProfileAllParties,
+    getPartiesYouMayLike,
     getPartyDetails,
     getPartyEventsById,
     addUserToParty,

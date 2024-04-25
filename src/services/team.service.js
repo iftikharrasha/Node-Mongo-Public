@@ -5,6 +5,7 @@ const excludedUserFieldsForTeamList = '-firstName -lastName -password -dateofBir
 
 const getAllTeamsService = async () => {
     const teams = await Team.find({ status: 'active' })
+                            .sort({createdAt: -1})
                             .populate('members.invited members.mates', `${excludedUserFieldsForTeamList} -gameAccounts`)
                             .populate('captainId', `${excludedUserFieldsForTeamList} -gameAccounts`);
     return teams;
@@ -22,6 +23,7 @@ const getMyTeamsByIdService = async (id) => {
                                     { 'members.mates': id }  // Check if the provided id exists in members.mates array
                                 ]
                             })
+                            .sort({createdAt: -1})
                             .populate('members.invited members.mates', `${excludedUserFieldsForTeamList} -gameAccounts`)
                             .populate('captainId', `${excludedUserFieldsForTeamList} -gameAccounts`);
     return team;

@@ -58,7 +58,7 @@ const partySchema = new mongoose.Schema({
         type: Number,
         default: 1
     }
-});
+}, { timestamps: true });
 
 partySchema.pre("save", async function (next) {
     const versionTable = await Version.findOne({ table: 'parties' });

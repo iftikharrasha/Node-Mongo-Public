@@ -1,6 +1,6 @@
-const { getAllTournamentsService, getAllTournamentsFilteredService, getTournamentDetailsService, getTournamentResultService, createTournamentService, updateTournamentByIdService, updateTournamentCredentialsService, updateTournamentResultService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentBracketByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, bookUserToBracketSlotService, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService } = require("../services/tournament.sevice.js");
+const { getAllTournamentsService, getAllTournamentsFilteredService, getTournamentDetailsService, getTournamentResultService, createTournamentService, updateTournamentByIdService, updateTournamentCredentialsService, updateTournamentResultService, updateTournamentApprovalService, deleteTournamentByIdService, deleteTournamentBracketByIdService, deleteTournamentLeaderboardByIdService, getLeaderboardsService, getBracketService, getCredentialsService, addUserToLeaderboardService, addUserToTournamentObjectLeaderboard, bookUserToBracketSlotService, getAllMasterTournamentsService, getAllInternalTournamentsService, addTournamentThumbnailService, addTeamToLeaderboardService, checkTeamMembersInLeaderboard, addMembersToTournamentObjectLeaderboard, bookTeamToBracketSlotService } = require("../services/tournament.sevice.js");
 const { addToPurchaseService, addPurchaseToTransactionsService } = require("../services/wallet.service.js");
-const { addPurchasedItemToUserService, updateXp, addUsersBadgeService } = require("../services/account.service.js");
+const { addPurchasedItemToUserService, updateXp, addUsersBadgeService, addPurchasedItemToTeamMembersService } = require("../services/account.service.js");
 const { getVersionTableService } = require("../services/versionTable.service.js");
 
 const getAllTournaments = async (req, res, next) => {
@@ -656,56 +656,68 @@ const tournamentRegistration = async (req, res, next) => {
         const tId = req.params.id;
         const uId = req.user.sub;
         const data = req.body;
-        const gameId = req.body.gameId;
+        const gameId = req.body.gameId; //means solo game
+        const teamId = req.body.teamId; //means solo game
 
-        // save or create
-        const purchased = await addToPurchaseService(data);  //but check if user already has this purchased
-        console.log("1. purchased", purchased);
-        if(purchased) {
-            const transaction = await addPurchaseToTransactionsService(uId, purchased._id.toString());
-            console.log("2. transaction", transaction);
-            if(transaction){
-                const tournament = await addUserToTournamentObjectLeaderboard(tId, uId);
-                console.log("3. tournament", tournament);
-                if(tournament){
-                    const leaderboard = await addUserToLeaderboardService(tId, uId, gameId);
-                    console.log("4. leaderboard", leaderboard);
-                    if(leaderboard){
-                        if(tournament.settings.competitionMode === "knockout"){
-                            const bracket = await bookUserToBracketSlotService(tId, uId);
-                            console.log("5.1 Bracket Push", bracket)
-                        }
-                        const purchaseItem = await addPurchasedItemToUserService(tId, uId);
-                        console.log("5.2 purchaseItem", purchaseItem)
-                        if(purchaseItem){
-                            const usersbadge = await addUsersBadgeService(req.user.sub, req.user.name, "join_tournament");
-                            console.log(usersbadge.badge)
-                            if(!usersbadge.success){
-                                //means already existed
-                                console.log(usersbadge.message)
+        if(gameId){
+            const purchased = await addToPurchaseService(data);  //but check if user already has this purchased  //for team as it is
+            // console.log("1. purchased", purchased);
+            if(purchased) {
+                const transaction = await addPurchaseToTransactionsService(uId, purchased._id.toString()); //for team as it is
+                // console.log("2. transaction", transaction);
+                if(transaction){
+                    const tournament = await addUserToTournamentObjectLeaderboard(tId, uId);  //for team push all members
+                    // console.log("3. tournament", tournament);
+                    if(tournament){
+                        const leaderboard = await addUserToLeaderboardService(tId, uId, gameId);  //for team do we need to create another schema?
+                        // console.log("4. leaderboard", leaderboard);
+                        if(leaderboard){
+                            if(tournament.settings.competitionMode === "knockout"){
+                                const bracket = await bookUserToBracketSlotService(tId, uId);
+                                // console.log("5.1 Bracket Push", bracket)
+                            }
+                            const purchaseItem = await addPurchasedItemToUserService(tId, uId);
+                            // console.log("5.2 purchaseItem", purchaseItem)
+                            if(purchaseItem){
+                                const usersbadge = await addUsersBadgeService(req.user.sub, req.user.name, "join_tournament");
+                                // console.log(usersbadge.badge)
+                                if(!usersbadge.success){
+                                    //means already existed
+                                    console.log(usersbadge.message)
+                                }else{
+                                    //created badge
+                                    response.badge = usersbadge.badge;
+                                }
+                                const xpToBeAdded = 600;
+                                const xpAdd = await updateXp(uId, xpToBeAdded, 0, 0); //adding xp to the users account
+                                if(xpAdd.success){
+                                    response.xp = [
+                                        `You've joined the tournament`,
+                                        `Unlocking XP points..`,
+                                        `You've earned +${xpToBeAdded} XP points`
+                                    ]
+                                }
+                                response.data = [];
+                                response.message = "User registered to tournament successfully";
+                                res.send(response);
                             }else{
-                                //created badge
-                                response.badge = usersbadge.badge;
+                                response.success = false;
+                                response.status = 400;
+                                response.message = "Problem adding purchase item to user object";
+                                response.error = {
+                                    code: 400,
+                                    message: "User is already registered",
+                                    target: "client side api calling issue"
+                                }
+                                res.send(response);
                             }
-                            const xpToBeAdded = 600;
-                            const xpAdd = await updateXp(uId, xpToBeAdded, 0, 0); //adding xp to the users account
-                            if(xpAdd.success){
-                                response.xp = [
-                                    `You've joined the tournament`,
-                                    `Unlocking XP points..`,
-                                    `You've earned +${xpToBeAdded} XP points`
-                                ]
-                            }
-                            response.data = leaderboard;
-                            response.message = "User registered successfully";
-                            res.send(response);
                         }else{
                             response.success = false;
                             response.status = 400;
-                            response.message = "Problem adding purchase item to user object";
+                            response.message = "Problem adding user to leaderboard";
                             response.error = {
                                 code: 400,
-                                message: "User is already registered",
+                                message: "Problem adding user to leaderboard",
                                 target: "client side api calling issue"
                             }
                             res.send(response);
@@ -713,10 +725,130 @@ const tournamentRegistration = async (req, res, next) => {
                     }else{
                         response.success = false;
                         response.status = 400;
-                        response.message = "Problem adding user to leaderboard";
+                        response.message = "Problem adding user to tournamnet leaderboard";
                         response.error = {
                             code: 400,
-                            message: "Problem adding user to leaderboard",
+                            message: "Problem adding user to tournament leaderboard",
+                            target: "client side api calling issue"
+                        }
+                        res.send(response);
+                    }
+                } else{
+                    response.success = false;
+                    response.status = 400;
+                    response.message = "Problem adding purchase to transaction";
+                    response.error = {
+                        code: 400,
+                        message: "Problem adding purchase to user transaction",
+                        target: "client side api calling issue"
+                    }
+                    res.send(response);
+                }
+            }else{
+                response.success = false;
+                response.status = 400;
+                response.message = "Problem purchasing the item";
+                response.error = {
+                    code: 400,
+                    message: "Problem purchasing the item",
+                    target: "client side api calling issue"
+                }
+                res.send(response);
+            }
+        }else if(teamId){
+            const checkedTeam = await checkTeamMembersInLeaderboard(tId, teamId);
+            if(checkedTeam.exists){
+                console.log('A member already added to a different team')
+                response.success = false;
+                response.status = 400;
+                response.message = 'A member already playing with a different team';
+                response.error = {
+                    code: 400,
+                    message: 'A member already playing with a different team',
+                    target: "client side api calling issue"
+                }
+                res.send(response);
+            }else{
+                const purchased = await addToPurchaseService(data); 
+                console.log("1. purchased", purchased);
+                if(purchased) {
+                    const transaction = await addPurchaseToTransactionsService(uId, purchased._id.toString());
+                    console.log("2. transaction", transaction);
+                    if(transaction){
+                        const tournament = await addMembersToTournamentObjectLeaderboard(tId, checkedTeam.members);
+                        console.log("3. tournament", tournament);
+                        if(tournament){
+                            const leaderboard = await addTeamToLeaderboardService(tId, uId, teamId); 
+                            console.log("4. leaderboard", leaderboard);
+                            if(leaderboard){
+                                if(tournament.settings.competitionMode === "knockout"){
+                                    const bracket = await bookTeamToBracketSlotService(tId, teamId);
+                                    console.log("5.1 Bracket Push", bracket)
+                                }
+                                const purchaseItem = await addPurchasedItemToTeamMembersService(tId, checkedTeam.members);
+                                console.log("5.2 purchaseItem", purchaseItem)
+                                if(purchaseItem){
+                                    const usersbadge = await addUsersBadgeService(req.user.sub, req.user.name, "join_tournament");
+                                    // console.log(usersbadge.badge)
+                                    if(!usersbadge.success){
+                                        //means already existed
+                                        console.log(usersbadge.message)
+                                    }else{
+                                        //created badge
+                                        response.badge = usersbadge.badge;
+                                    }
+                                    const xpToBeAdded = 600;
+                                    const xpAdd = await updateXp(uId, xpToBeAdded, 0, 0); //adding xp to the users account
+                                    if(xpAdd.success){
+                                        response.xp = [
+                                            `You've joined the tournament`,
+                                            `Unlocking XP points..`,
+                                            `You've earned +${xpToBeAdded} XP points`
+                                        ]
+                                    }
+                                    response.data = checkedTeam.members;
+                                    response.message = "Team registered to tournament successfully";
+                                    res.send(response);
+                                }else{
+                                    response.success = false;
+                                    response.status = 400;
+                                    response.message = "Problem adding purchase item to members object";
+                                    response.error = {
+                                        code: 400,
+                                        message: "User is already registered",
+                                        target: "client side api calling issue"
+                                    }
+                                    res.send(response);
+                                }
+                            }else{
+                                response.success = false;
+                                response.status = 400;
+                                response.message = "Problem adding team to leaderboard";
+                                response.error = {
+                                    code: 400,
+                                    message: "Problem adding user to leaderboard",
+                                    target: "client side api calling issue"
+                                }
+                                res.send(response);
+                            }
+                        }else{
+                            response.success = false;
+                            response.status = 400;
+                            response.message = "Problem adding users to tournamnet leaderboard";
+                            response.error = {
+                                code: 400,
+                                message: "Problem adding user to tournament leaderboard",
+                                target: "client side api calling issue"
+                            }
+                            res.send(response);
+                        }
+                    } else{
+                        response.success = false;
+                        response.status = 400;
+                        response.message = "Problem adding purchase to transaction";
+                        response.error = {
+                            code: 400,
+                            message: "Problem adding purchase to user transaction",
                             target: "client side api calling issue"
                         }
                         res.send(response);
@@ -724,40 +856,20 @@ const tournamentRegistration = async (req, res, next) => {
                 }else{
                     response.success = false;
                     response.status = 400;
-                    response.message = "Problem adding user to tournamnet leaderboard";
+                    response.message = "Problem purchasing the item";
                     response.error = {
                         code: 400,
-                        message: "Problem adding user to tournament leaderboard",
+                        message: "Problem purchasing the item",
                         target: "client side api calling issue"
                     }
                     res.send(response);
                 }
-            } else{
-                response.success = false;
-                response.status = 400;
-                response.message = "Problem adding purchase to transaction";
-                response.error = {
-                    code: 400,
-                    message: "Problem adding purchase to user transaction",
-                    target: "client side api calling issue"
-                }
-                res.send(response);
             }
-        }else{
-            response.success = false;
-            response.status = 400;
-            response.message = "Problem purchasing the item";
-            response.error = {
-                code: 400,
-                message: "Problem purchasing the item",
-                target: "client side api calling issue"
-            }
-            res.send(response);
         }
     } catch (error) {
         response.success = false;
         response.status = 400;
-        response.message = "User is not registered";
+        response.message = "Unexpected happened";
         response.error = {
             code: 400,
             message: error.message,
@@ -936,6 +1048,13 @@ const addTournamentImage = async (req, res, next) => {
                 // const author = req.user.sub;
                 // console.log(author)
                 const tid =  req.params.id;
+
+                // const existingImageKey = /* Retrieve the existing image key associated with the tournament */;
+                // Delete existing image if it exists
+                // if (existingImageKey) {
+                //     await deleteObjectFromS3(existingImageKey);
+                // }
+
                 const result = await addTournamentThumbnailService(tid, imageUrl);
                 // console.log(result);
 
@@ -945,7 +1064,16 @@ const addTournamentImage = async (req, res, next) => {
                 response.message = "Tournament Image uploaded successfully";
                 res.send(response);
             } catch (error) {
-                
+                response.success = false;
+                response.status = 400;
+                response.message = "Image link upload to DB error",
+                response.error = {
+                    code: 400,
+                    message: "Unknown error",
+                    target: "client side api calling issue"
+                }
+    
+                res.send(response);
             }
         }else{
             response.success = false;

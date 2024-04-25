@@ -27,7 +27,7 @@ const purchaseSchema = new mongoose.Schema({
     },
     trx: { 
         type: String,
-        default: '-' 
+        default: 'Pm_1asdaTr2343asw' 
     },
     method: { 
         type: String,

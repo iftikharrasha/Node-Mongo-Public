@@ -15,6 +15,22 @@ exports.s3Uploadv3 = async (file, path) => {
   return { result, settings }; 
 };
 
+// const deleteObjectFromS3 = async (key) => {
+//   const s3client = new S3Client();
+
+//   const params = {
+//       Bucket: process.env.AWS_BUCKET_NAME,
+//       Key: key,
+//   };
+
+//   try {
+//       await s3client.send(new DeleteObjectCommand(params));
+//   } catch (error) {
+//       console.error("Error deleting object from S3:", error);
+//       throw error;
+//   }
+// };
+
 
 //multiple files
 // exports.s3UploadMultiv3 = async (files) => {

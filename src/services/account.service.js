@@ -447,7 +447,6 @@ const deleteProfileByIdService = async (id) => {
 };
 
 const addPurchasedItemToUserService = async (tId, uId) => {
-    //pushing tournament id inside the user
     const currentUser = await User.findOne({ _id: uId });
 
     if(currentUser){
@@ -464,6 +463,22 @@ const addPurchasedItemToUserService = async (tId, uId) => {
         }
     }else{
         return false
+    }
+};
+
+const addPurchasedItemToTeamMembersService = async (tId, members) => {
+    try {
+        // Iterate over each member ObjectId
+        for (const memberId of members) {
+            // Find the user document and update the purchasedItems.tournaments array
+            await User.findByIdAndUpdate(memberId, {
+                $addToSet: { 'purchasedItems.tournaments': tId }
+            });
+        }
+        return { success: true, message: 'Tournament added to users purchasedItems' };
+    } catch (error) {
+        console.error('Error adding tournament to users purchasedItems:', error);
+        return { success: false, message: 'Error adding tournament to users purchasedItems' };
     }
 };
 
@@ -489,6 +504,7 @@ module.exports = {
     updateProfileByIdService,
     deleteProfileByIdService,
     addPurchasedItemToUserService,
+    addPurchasedItemToTeamMembersService,
     getUsersListService,
     updateXp,
     addGameAccountService,
