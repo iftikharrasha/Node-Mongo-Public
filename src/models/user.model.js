@@ -259,6 +259,14 @@ const userSchema = new mongoose.Schema({
             type: Number,
             default: 0
         },
+        aquamarine: {
+            type: Number,
+            default: 10
+        },
+        tourmaline: {
+            type: Number,
+            default: 0
+        },
         levelTitle: {
             type: String,
             default: "Iron Shakled"

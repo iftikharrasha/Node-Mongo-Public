@@ -676,7 +676,7 @@ const tournamentRegistration = async (req, res, next) => {
                                 const bracket = await bookUserToBracketSlotService(tId, uId);
                                 // console.log("5.1 Bracket Push", bracket)
                             }
-                            const purchaseItem = await addPurchasedItemToUserService(tId, uId);
+                            const purchaseItem = await addPurchasedItemToUserService(tId, uId, purchased.method, purchased.amount);
                             // console.log("5.2 purchaseItem", purchaseItem)
                             if(purchaseItem){
                                 const usersbadge = await addUsersBadgeService(req.user.sub, req.user.name, "join_tournament");

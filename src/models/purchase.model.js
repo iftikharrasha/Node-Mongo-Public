@@ -20,27 +20,35 @@ const purchaseSchema = new mongoose.Schema({
     currency: { 
         type: String,
         enum: {
-            values: ["usd", "gems"],
+            values: ["usd", "sar", "bdt", "gem"],
             message: "{VALUE} is not a valid currency",
         },
-        default: 'usd'
+        default: 'gem'
     },
     trx: { 
         type: String,
         default: 'Pm_1asdaTr2343asw' 
     },
+    // method: { 
+    //     type: String,
+    //     enum: {
+    //         values: ["gems", "card", "balance", "free"],
+    //         message: "{VALUE} is not a valid method",
+    //     },
+    //     default: 'free' 
+    // },
     method: { 
         type: String,
         enum: {
-            values: ["gems", "card", "balance", "free"],
+            values: ["aquamarine", "tourmaline"],
             message: "{VALUE} is not a valid method",
         },
-        default: 'free' 
+        default: 'aquamarine' 
     },
     remarks: { 
         type: String,
         enum: {
-            values: ["registration", "topup", "prize", "transfer", "earning", "refund", "withdraw", "unknown"],
+            values: ["registration", "topup", "prize", "transfer", "earning", "refund", "deposit", "withdraw", "unknown"],
             message: "{VALUE} is not a valid remarks",
         },
         default: 'unknown' 
@@ -56,7 +64,7 @@ const purchaseSchema = new mongoose.Schema({
     activity: { 
         type: String,
         enum: {
-            values: ["expense", "withdrawal", "earning", "unknown"],
+            values: ["expense", "withdrawal", "earning", "deposit", "unknown"],
             message: "{VALUE} is not a valid activity",
         },
         default: 'unknown' 

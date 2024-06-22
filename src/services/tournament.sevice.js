@@ -5,6 +5,7 @@ const User = require('../models/user.model')
 const Team = require('../models/team.model')
 const moment = require('moment');
 const mongoose = require("mongoose");
+const { getTeamByIdService } = require('./team.service')
 
 const excludedMasterFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -stats -socials -updatedAt -__v';
 const excludedUserFields = '-firstName -lastName -balance -password -dateofBirth -version -permissions -address -teams -socials -updatedAt -__v';
@@ -114,8 +115,12 @@ const getCredentialsService = async (tId, uId) => {
     const tournament = await Tournament.findOne({ _id: tId })
     let credentials = {}
 
-    if(tournament.settings.competitionMode === "knockout"){
-       credentials = await getCurrentMatchCredentials(tId, uId, tournament.settings.currentMatchId, credentials)
+    const mode = tournament.settings.mode;
+    const competitionMode = tournament.settings.competitionMode;
+    const currentMatchId = tournament.settings.currentMatchId;
+
+    if(competitionMode === "knockout"){
+       credentials = await getCurrentMatchCredentials(tId, uId, currentMatchId, credentials, mode)
     }else{
        credentials = tournament.credentials;
     }
@@ -123,13 +128,28 @@ const getCredentialsService = async (tId, uId) => {
     return credentials;
 }
 
-const getCurrentMatchCredentials = async (tId, uId, matchId, credentials) => {
+const getCurrentMatchCredentials = async (tId, uId, matchId, credentials, mode) => {
     const bracket = await Bracket.findOne({ tId: tId });
     const match = bracket.matches[matchId-1];
     
-    const IsSlotBooked = match.participants.find(participant => participant.id.toString() === uId);
-    if(IsSlotBooked){
-        credentials = match.credentials;
+    if(mode === 'solo'){
+        const IsSlotBooked = match.participants.find(participant => participant.id.toString() === uId);
+        if(IsSlotBooked){
+            credentials = match.credentials;
+        }
+    }else if(mode === 'team'){
+        let isParticipant = false;
+        for (const participant of match.participants) {
+            const team = await getTeamByIdService(participant.id);
+            if (team.captainId.toString() === uId || team.members.mates.includes(uId)) {
+                isParticipant = true;
+                break;
+            }
+        }
+
+        if (isParticipant) {
+            credentials = match.credentials;
+        }
     }
 
     return credentials;
@@ -314,14 +334,21 @@ const updateTournamentByIdService = async (id, data) => {
 const addUserToTournamentObjectLeaderboard = async (tId, uId) => {
     //pushing user id inside the tournament leaderboard
     const currentTournament = await Tournament.findOne({ _id: tId });
+    const joiningFee = currentTournament.settings.joiningFee;
+    const newPot = currentTournament.settings.pot + joiningFee;
 
     if(currentTournament){
         if (currentTournament.leaderboards.indexOf(uId) !== -1) {
             return false
         } else {
             const result = await Tournament.findOneAndUpdate(
-                { _id: currentTournament._id },
-                {  $push: { "leaderboards": uId } },
+                { 
+                    _id: currentTournament._id 
+                },
+                {  
+                    $push: { "leaderboards": uId },
+                     $set: { "settings.pot": newPot } 
+                },
                 { new: true }
             );
             

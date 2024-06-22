@@ -23,10 +23,15 @@ const settingsSchema = new mongoose.Schema({
     feeType: {
         type: String,
         enum: {
-            values: ["gems", "money", "free"],
+            values: ["tourmaline", "aquamarine"],
             message: "{VALUE} is not a valid feeType!",
         },
-        default: 'free'
+        default: 'aquamarine'
+    },
+    pot: {
+        type: Number,
+        default: 0,
+        min: 0,
     },
     mode: {
         type: String,
@@ -270,7 +275,8 @@ const tournamentSchema = new mongoose.Schema({
         type: settingsSchema,
         default: {
             joiningFee: 0,
-            feeType: 'free',
+            feeType: 'aquamarine',
+            pot: 0,
             mode: "solo",
             maxParticipitant: 2,
             rounds: 1,

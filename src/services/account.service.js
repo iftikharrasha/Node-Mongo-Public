@@ -446,16 +446,33 @@ const deleteProfileByIdService = async (id) => {
     return result;
 };
 
-const addPurchasedItemToUserService = async (tId, uId) => {
+const addPurchasedItemToUserService = async (tId, uId, feeType, joiningFee) => {
     const currentUser = await User.findOne({ _id: uId });
 
     if(currentUser){
         if (currentUser.purchasedItems.tournaments.indexOf(tId) !== -1) {
             return false
         } else {
+            let updateFields = {};
+            if (feeType === 'aquamarine') {
+                updateFields = {
+                    "stats.aquamarine": currentUser.stats.aquamarine - joiningFee,
+                    "stats.totalGems": currentUser.stats.totalGems - joiningFee
+                };
+            } else if (feeType === 'tourmaline') {
+                updateFields = {
+                    "stats.tourmaline": currentUser.stats.tourmaline - joiningFee,
+                    "stats.totalGems": currentUser.stats.totalGems - joiningFee
+                };
+            }
+
             const result = await User.findOneAndUpdate(
                 { _id: currentUser._id },
-                {  $inc: { version: 1 }, $push: { "purchasedItems.tournaments": tId } },
+                {  
+                    $inc: { version: 1 }, 
+                    $push: { "purchasedItems.tournaments": tId },
+                    $set: updateFields
+                },
                 { new: true }
             );
             
@@ -471,8 +488,12 @@ const addPurchasedItemToTeamMembersService = async (tId, members) => {
         // Iterate over each member ObjectId
         for (const memberId of members) {
             // Find the user document and update the purchasedItems.tournaments array
-            await User.findByIdAndUpdate(memberId, {
-                $addToSet: { 'purchasedItems.tournaments': tId }
+            // await User.findByIdAndUpdate(memberId, {
+            //     $addToSet: { 'purchasedItems.tournaments': tId }
+            // });
+            await User.findOneAndUpdate(
+                { _id: memberId },
+                { $addToSet: { 'purchasedItems.tournaments': tId } , $inc: { version: 1 }
             });
         }
         return { success: true, message: 'Tournament added to users purchasedItems' };

@@ -13,7 +13,7 @@ const notificationSchema = new mongoose.Schema({
     },
     subjectPhoto: { 
         type: String,
-        validate: [validator.isURL, "Please provide a valid image url"],
+        // validate: [validator.isURL, "Please provide a valid image url"],
         required: true
     },
     invokedByName: { 

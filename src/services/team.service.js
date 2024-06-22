@@ -1,4 +1,4 @@
-const { getDb } = require("../utils/dbConnect")
+// const { getDb } = require("../utils/dbConnect")
 const Team = require('../models/team.model');
 const User = require('../models/user.model');
 const excludedUserFieldsForTeamList = '-firstName -lastName -password -dateofBirth -version -address -teams -requests -socials -updatedAt -__v -balance -emailAddress -mobileNumber -permissions -purchasedItems -status -parties -badgeRef';
@@ -352,6 +352,7 @@ const teamJoinRequestService = async (data) => {
 
 module.exports = {
     getAllTeamsService,
+    getTeamByIdService,
     getTeamDetailsService,
     updateTeamByIdService,
     getMyTeamsByIdService,

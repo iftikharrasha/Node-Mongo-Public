@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
-const uri = `${process.env.APP_DATABASE_URI}`;
+
+const uri = `${process.env.APP_DATABASE_URI}/?retryWrites=true&w=majority`;
+// const uri = `${process.env.APP_DATABASE_URI}/testbeta?retryWrites=true&w=majority`;
 
 const mongooseConnect = async () => {
   try {
